@@ -10,156 +10,159 @@
 
 namespace DnsProtocol
 {
-      struct ALIGNAS HeaderPod
-      {
-         private:
-            uint16_t m_ID;
-            uint16_t m_Flags;
-            uint16_t m_QdCount;
-            uint16_t m_AnCount;
-            uint16_t m_NsCount;
-            uint16_t m_ArCount;
+   struct ALIGNAS HeaderPod
+   {
+      public:
+         void ID(uint16_t ID_)
+         {
+            m_ID = ID_;
+         }
 
-         public:
-            void ID(uint16_t ID_)
-            {
-               m_ID = ID_;
-            }
+         uint16_t ID() const
+         {
+            return m_ID;
+         }
 
-            uint16_t ID() const
-            {
-               return m_ID;
-            }
+         void QR_Flag(bool b)
+         {
+            m_Flags |= (b ? 0x8000 : 0x0000);
+         }
 
-            void QR_Flag(bool b)
-            {
-               m_Flags |= (b ? 0x8000 : 0x0000);
-            }
+         bool QR_Flag() const
+         {
+            return m_Flags & 0x8000 == 0x8000;
+         }
 
-            bool QR_Flag() const
-            {
-               return m_Flags & 0x8000 == 0x8000;
-            }
+         void OpCode(uint8_t OpCode_)
+         {
+            m_Flags |= (OpCode_ & 0xF) << 11;
+         }
 
-            void OpCode(uint8_t OpCode_)
-            {
-               m_Flags |= (OpCode_ & 0xF) << 11;
-            }
+         uint8_t OpCode() const
+         {
+            return (m_Flags & 0x7800) >> 11;
+         }
 
-            uint8_t OpCode() const
-            {
-               return (m_Flags & 0x7800) >> 11;
-            }
+         void AA_Flag(bool b)
+         {
+            m_Flags |= (b ? 0x0400 : 0x0000);
+         }
 
-            void AA_Flag(bool b)
-            {
-               m_Flags |= (b ? 0x0400 : 0x0000);
-            }
+         bool AA_Flag() const
+         {
+            return m_Flags & 0x0400 == 0x0400;
+         }
 
-            bool AA_Flag() const
-            {
-               return m_Flags & 0x0400 == 0x0400;
-            }
+         void TC_Flag(bool b)
+         {
+            m_Flags |= (b ? 0x0200 : 0x0000);
+         }
 
-            void TC_Flag(bool b)
-            {
-               m_Flags |= (b ? 0x0200 : 0x0000);
-            }
+         bool TC_Flag() const
+         {
+            return m_Flags & 0x0200 == 0x0200;
+         }
 
-            bool TC_Flag() const
-            {
-               return m_Flags & 0x0200 == 0x0200;
-            }
+         void RD_Flag(bool b)
+         {
+            m_Flags |= (b ? 0x0100 : 0x0000);
+         }
 
-            void RD_Flag(bool b)
-            {
-               m_Flags |= (b ? 0x0100 : 0x0000);
-            }
+         bool RD_Flag() const
+         {
+            return m_Flags & 0x0100 == 0x0100;
+         }
 
-            bool RD_Flag() const
-            {
-               return m_Flags & 0x0100 == 0x0100;
-            }
+         void RA_Flag(bool b)
+         {
+            m_Flags |= (b ? 0x0080 : 0x0000);
+         }
 
-            void RA_Flag(bool b)
-            {
-               m_Flags |= (b ? 0x0080 : 0x0000);
-            }
+         bool RA_Flag() const
+         {
+            return m_Flags & 0x0080 == 0x0080;
+         }
 
-            bool RA_Flag() const
-            {
-               return m_Flags & 0x0080 == 0x0080;
-            }
+         void Z_Flag()
+         {
+            m_Flags &= ~0x0070;
+         }
 
-            void Z_Flag()
-            {
-               m_Flags &= ~0x0070;
-            }
+         void RCode(uint8_t RCode_)
+         {
+            m_Flags |= (RCode_ & 0xF);
+         }
 
-            void RCode(uint8_t RCode_)
-            {
-               m_Flags |= (RCode_ & 0xF);
-            }
+         uint8_t RCode() const
+         {
+            return (m_Flags & 0xF);
+         }
 
-            uint8_t RCode() const
-            {
-               return (m_Flags & 0xF);
-            }
+         void QdCount(uint16_t QdCount_)
+         {
+            m_QdCount = QdCount_;
+         }
 
-            void QdCount(uint16_t QdCount_)
-            {
-               m_QdCount = QdCount_;
-            }
+         uint16_t QdCount() const
+         {
+            return m_QdCount;
+         }
 
-            uint16_t QdCount() const
-            {
-               return m_QdCount;
-            }
+         void AnCount(uint16_t AnCount_)
+         {
+            m_AnCount = AnCount_;
+         }
 
-            void AnCount(uint16_t AnCount_)
-            {
-               m_AnCount = AnCount_;
-            }
+         uint16_t AnCount() const
+         {
+            return m_AnCount;
+         }
 
-            uint16_t AnCount() const
-            {
-               return m_AnCount;
-            }
+         void NsCount(uint16_t NsCount_)
+         {
+            m_NsCount = NsCount_;
+         }
 
-            void NsCount(uint16_t NsCount_)
-            {
-               m_NsCount = NsCount_;
-            }
+         uint16_t NsCount() const
+         {
+            return m_NsCount;
+         }
 
-            uint16_t NsCount() const
-            {
-               return m_NsCount;
-            }
+         void ArCount(uint16_t ArCount_)
+         {
+            m_ArCount = ArCount_;
+         }
 
-            void ArCount(uint16_t ArCount_)
-            {
-               m_ArCount = ArCount_;
-            }
+         uint16_t ArCount() const
+         {
+            return m_ArCount;
+         }
 
-            uint16_t ArCount() const
-            {
-               return m_ArCount;
-            }
+         auto WireData() const
+         {
+            const uint8_t* b = reinterpret_cast<const uint8_t*>(this);
 
-      } m_Header;
+            return std::make_pair(b, b + sizeof(*this));
+         }
 
-      struct ALIGNAS QuestionPod
-      {
-      };
+      private:
+         uint16_t m_ID;
+         uint16_t m_Flags;
+         uint16_t m_QdCount;
+         uint16_t m_AnCount;
+         uint16_t m_NsCount;
+         uint16_t m_ArCount;
+   };
 
-      struct QName
-      {
+   struct QName
+   {
       public:
          explicit QName(const std::string& fqdn)
          {
-            m_fqdn.reserve( fqdn.size() + 1 );
+            m_fqdn.reserve(fqdn.size() + 1);
 
-            auto pos = fqdn.size(); pos = 0;
+            auto pos = fqdn.size();
+            pos = 0;
 
             while(true)
             {
@@ -171,7 +174,7 @@ namespace DnsProtocol
 
                m_fqdn.push_back(sz);
 
-               std::copy( fqdn.data() + pos, fqdn.data() + pos + sz, std::back_inserter(m_fqdn) );
+               std::copy(fqdn.data() + pos, fqdn.data() + pos + sz, std::back_inserter(m_fqdn));
 
                if(dotpos == fqdn.npos)
                   break;
@@ -182,21 +185,15 @@ namespace DnsProtocol
             m_fqdn.push_back(0);
          }
 
-         std::vector<uint8_t> Data() const
+         auto WireData() const
          {
-            return m_fqdn;
+            return std::make_pair(m_fqdn.cbegin(), m_fqdn.cend());
          }
 
-         void FillData(std::ostream& os) const
-         {
-            for(auto c : this->Data())
-               os << c;
-         }
-
-         friend std::ostream& operator<<( std::ostream& os, const QName& rhs )
+         friend std::ostream& operator<<(std::ostream& os, const QName& rhs)
          {
             unsigned c = 0;
-            for( auto x : rhs.m_fqdn )
+            for(auto x : rhs.m_fqdn)
             {
                if(c == 0)
                {
@@ -215,7 +212,7 @@ namespace DnsProtocol
 
       private:
          std::vector<uint8_t> m_fqdn;
-      };
+   };
 };
 
 #endif

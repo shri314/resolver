@@ -4,6 +4,7 @@
 
 #include "Dns.h"
 
+#include <string>
 #include <sstream>
 #include <iostream>
 
@@ -19,12 +20,12 @@ BOOST_AUTO_TEST_CASE(qname_serialization)
    }
 
    {
+      using namespace std::string_literals;
+
       DnsProtocol::QName qn{"www.yahoo.com"};
 
-      std::ostringstream oss;
+      auto&& wd = qn.WireData();
 
-      qn.FillData(oss);
-
-      BOOST_TEST( oss.str() == "\003www\005yahoo\003com" + std::string(1, '\0') );
+      BOOST_TEST( std::string( wd.first, wd.second ) == "\003www\005yahoo\003com\000"s );
    }
 }
