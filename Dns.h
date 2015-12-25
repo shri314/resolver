@@ -15,22 +15,24 @@ namespace DnsProtocol
       public:
          void ID(uint16_t ID_)
          {
-            m_ID = ID_;
+            m_store[0] = (ID_ & 0x00FF) >> 0;
+            m_store[1] = (ID_ & 0xFF00) >> 8;
          }
 
          uint16_t ID() const
          {
-            return m_ID;
+            return  (uint16_t(m_store[1]) << 8)
+                  | (uint16_t(m_store[0]) << 0);
          }
 
          void QR_Flag(bool b)
          {
-            m_Flags |= (b ? 0x8000 : 0x0000);
+            m_store[2] |= (b ? 0x8000 : 0x0000);
          }
 
          bool QR_Flag() const
          {
-            return m_Flags & 0x8000 == 0x8000;
+            return m_store[2] & 0x8000 == 0x8000;
          }
 
          void OpCode(uint8_t OpCode_)
@@ -72,6 +74,8 @@ namespace DnsProtocol
          {
             return m_Flags & 0x0100 == 0x0100;
          }
+
+         //////////////
 
          void RA_Flag(bool b)
          {
@@ -140,18 +144,24 @@ namespace DnsProtocol
 
          auto WireData() const
          {
-            const uint8_t* b = reinterpret_cast<const uint8_t*>(this);
+            return std::make_pair(m_store.cbegin(), m_store.cend());
+         }
 
-            return std::make_pair(b, b + sizeof(*this));
+         std::vector<uint8_t> m_store;
+
+         HeaderPod()
+         {
+            m_store.resize(12);
          }
 
       private:
-         uint16_t m_ID;
-         uint16_t m_Flags;
-         uint16_t m_QdCount;
-         uint16_t m_AnCount;
-         uint16_t m_NsCount;
-         uint16_t m_ArCount;
+
+         uint16_t m_ID = 0;
+         uint16_t m_Flags = 0;
+         uint16_t m_QdCount = 0;
+         uint16_t m_AnCount = 0;
+         uint16_t m_NsCount = 0;
+         uint16_t m_ArCount = 0;
    };
 
    struct QName
