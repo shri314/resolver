@@ -8,7 +8,7 @@
 #include <sstream>
 #include <iostream>
 
-std::string OctRep(unsigned char x, bool keep_printables = false)
+std::string HexRep(unsigned char x, bool keep_printables = false)
 {
    std::ostringstream oss;
 
@@ -16,36 +16,34 @@ std::string OctRep(unsigned char x, bool keep_printables = false)
       oss << x;
    else
    {
-      if(x < 8)
-         oss << "\\00" << std::oct << (unsigned)x;
-      else if(x < 64)
-         oss << "\\0" << std::oct << (unsigned)x;
+      if(x < 16)
+         oss << "\\x0" << std::hex << (unsigned)x;
       else
-         oss << "\\" << std::oct << (unsigned)x;
+         oss << "\\x" << std::hex << (unsigned)x;
    }
 
    return oss.str();
 }
 
-std::string OctRep(std::string data)
+std::string HexRep(std::string data)
 {
    std::ostringstream oss;
    for(auto x : data)
-      oss << OctRep((unsigned char)x);
+      oss << HexRep((unsigned char)x);
 
    return oss.str();
 }
 
-std::string OctRep(uint32_t x)
+std::string HexRep(uint32_t x)
 {
    unsigned char* b = reinterpret_cast<unsigned char*>(&x);
-   return OctRep(std::string(b, b + sizeof(x)));
+   return HexRep(std::string(b, b + sizeof(x)));
 }
 
-std::string OctRep(uint16_t x)
+std::string HexRep(uint16_t x)
 {
    unsigned char* b = reinterpret_cast<unsigned char*>(&x);
-   return OctRep(std::string(b, b + sizeof(x)));
+   return HexRep(std::string(b, b + sizeof(x)));
 }
 
 using namespace std::string_literals;
@@ -71,59 +69,60 @@ BOOST_AUTO_TEST_CASE(qname_serialization)
 
    {
       DnsProtocol::HeaderPod h;
+      h.ID(0xf9ac);
 
-      h.ID(100);
+      h.QR_Flag(0);
+      h.OpCode(0);
+      h.AA_Flag(0);
+      h.TC_Flag(0);
+      h.RD_Flag(1);
+      h.RA_Flag(0);
+      h.RCode(0);
 
-   }
-
-   {
-      DnsProtocol::HeaderPod h;
-
-      auto&& wd = h.WireData();
-
-      std::string exp;
-      exp.resize(2 * 6);
-
-      BOOST_CHECK_EQUAL(std::string(wd.first, wd.second), exp);
-   }
-
-   {
-      DnsProtocol::HeaderPod h;
-      h.ID(18365);
-      // h.QR_Flag(1);
+      h.QdCount(1);
+      h.AnCount(0);
+      h.NsCount(0);
+      h.ArCount(0);
 
       auto&& wd = h.WireData();
 
-      std::cout << OctRep((uint16_t)18365) << "\n";
+      BOOST_CHECK_EQUAL(h.ID(), 0xf9ac);
+      BOOST_CHECK_EQUAL(h.QR_Flag(), false);
+      BOOST_CHECK_EQUAL(h.OpCode(), 0);
+      BOOST_CHECK_EQUAL(h.AA_Flag(), false);
+      BOOST_CHECK_EQUAL(h.TC_Flag(), false);
+      BOOST_CHECK_EQUAL(h.RD_Flag(), true);
+      BOOST_CHECK_EQUAL(h.RA_Flag(), false);
+      BOOST_CHECK_EQUAL(h.ZCode(), 0);
+      BOOST_CHECK_EQUAL(h.RCode(), 0);
+      BOOST_CHECK_EQUAL(h.QdCount(), 1);
+      BOOST_CHECK_EQUAL(h.AnCount(), 0);
+      BOOST_CHECK_EQUAL(h.NsCount(), 0);
+      BOOST_CHECK_EQUAL(h.ArCount(), 0);
 
-      BOOST_CHECK_EQUAL(h.ID(), 18365);
-      // BOOST_CHECK_EQUAL(h.QR_Flag(), true);
+      std::string req = "\xf9\xac\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\5yahoo\3com\0\0\17\0\1"s;
+      req.resize(12);
 
-      std::cout << OctRep(std::string(wd.first, wd.second)) << std::endl;
-
-      BOOST_CHECK_EQUAL( OctRep(std::string(wd.first, wd.second)), OctRep("\275\107\000\000\000\000\000\000\000\000\000\000"s));
+      BOOST_CHECK_EQUAL( HexRep(std::string(wd.first, wd.second)), HexRep(req) );
    }
 
    {
-      std::cout << "======\n";
-      std::string x = "\275\107\001\040\000\001\000\000\000\000\000\001"s;
-      std::cout << OctRep(x) << "\n";
+      std::string res = "\xf9\xac\x81\x80\x00\x01\x00\x03\x00\x00\x00\x00\5yahoo\3com\0\0\17\0\1\300\f\0\17\0\1\0\0\4\245\0\31\0\1\4mta7\3am0\10yahoodns\3net\0\300\f\0\17\0\1\0\0\4\245\0\t\0\1\4mta6\300.\300\f\0\17\0\1\0\0\4\245\0\t\0\1\4mta5\300."s;
 
-      DnsProtocol::HeaderPod h;
-      auto&& wd = h.WireData();
-      std::copy( x.data(), x.data() + x.size(), h.m_store.begin() );
+      DnsProtocol::HeaderPod h( std::make_pair(res.data(), res.data() + res.size()) );
 
-      std::cout << "ID=" << (int)h.ID() << "\n";
-      std::cout << "QR_Flag=" << (int)h.QR_Flag() << "\n";
-      std::cout << "AA_Flag=" << (int)h.AA_Flag() << "\n";
-      std::cout << "TC_Flag=" << (int)h.TC_Flag() << "\n";
-      std::cout << "RD_Flag=" << (int)h.RD_Flag() << "\n";
-      std::cout << "RA_Flag=" << (int)h.RA_Flag() << "\n";
-      std::cout << "RCode="   << (int)h.RCode()   << "\n";
-      std::cout << "OpCode="  << (int)h.OpCode()  << "\n";
-      std::cout << "QdCount=" << (int)h.QdCount() << "\n";
-      std::cout << "AnCount=" << (int)h.AnCount() << "\n";
-      std::cout << "NsCount=" << (int)h.NsCount() << "\n";
-      std::cout << "ArCount=" << (int)h.ArCount() << "\n";
+      BOOST_CHECK_EQUAL(h.ID(), 0xf9ac);
+      BOOST_CHECK_EQUAL(h.QR_Flag(), true);
+      BOOST_CHECK_EQUAL(h.OpCode(), 0);
+      BOOST_CHECK_EQUAL(h.AA_Flag(), false);
+      BOOST_CHECK_EQUAL(h.TC_Flag(), false);
+      BOOST_CHECK_EQUAL(h.RD_Flag(), true);
+      BOOST_CHECK_EQUAL(h.RA_Flag(), true);
+      BOOST_CHECK_EQUAL(h.ZCode(), 0);
+      BOOST_CHECK_EQUAL(h.RCode(), 0);
+      BOOST_CHECK_EQUAL(h.QdCount(), 1);
+      BOOST_CHECK_EQUAL(h.AnCount(), 3);
+      BOOST_CHECK_EQUAL(h.NsCount(), 0);
+      BOOST_CHECK_EQUAL(h.ArCount(), 0);
    }
 }
