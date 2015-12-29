@@ -6,6 +6,7 @@
 #include <vector>
 #include <ostream>
 #include <algorithm> // std::copy
+#include <boost/asio/buffer.hpp>
 
 namespace DnsProtocol
 {
@@ -158,26 +159,30 @@ namespace DnsProtocol
                    | (uint16_t(m_store[11]) << 0);
          }
 
-         auto WireData() const
+         auto WireData(std::vector<boost::asio::const_buffer>& buf) const
          {
-            return std::make_pair(m_store.cbegin(), m_store.cend());
+            buf.push_back( boost::asio::const_buffer{&m_store[0], m_store.size()} );
          }
 
-         void WireData(std::vector<uint8_t>& store)&&
+         auto WireData(std::vector<uint8_t>& buf) const
          {
-            std::move(m_store.begin(), m_store.end(), std::back_inserter(store));
+            std::copy( m_store.begin(), m_store.end(), std::back_inserter(buf) );
+         }
+
+         auto WireData() const
+         {
+            std::vector<uint8_t> buf;
+            WireData(buf);
+            return buf;
          }
 
          HeaderPod()
          {
-            m_store.resize(12);
          }
 
          template<class Iter>
          HeaderPod(const std::pair<Iter, Iter>& wd)
          {
-            m_store.resize(12);
-
             std::copy(
                   wd.first,
                   wd.second - wd.first > m_store.size() ? wd.first + m_store.size() : wd.second,
@@ -186,32 +191,32 @@ namespace DnsProtocol
          }
 
       private:
-         std::vector<uint8_t> m_store;
+         std::array<uint8_t, 12> m_store;
    };
 
    struct QName
    {
       public:
-         explicit QName(const std::string& fqdn)
+         explicit QName(const std::string& qname)
          {
-            m_store.reserve(fqdn.size() + 1);
+            m_store.reserve(qname.size() + 1);
 
-            auto pos = fqdn.size();
+            auto pos = qname.size();
             pos = 0;
 
             while(true)
             {
-               auto dotpos = fqdn.find('.', pos);
+               auto dotpos = qname.find('.', pos);
 
-               auto endpos = (dotpos == fqdn.npos) ? fqdn.size() : dotpos;
+               auto endpos = (dotpos == qname.npos) ? qname.size() : dotpos;
 
                uint8_t sz = (endpos - pos) > 255 ? 255 : (endpos - pos);
 
                m_store.push_back(sz);
 
-               std::copy(fqdn.data() + pos, fqdn.data() + pos + sz, std::back_inserter(m_store));
+               std::copy(qname.data() + pos, qname.data() + pos + sz, std::back_inserter(m_store));
 
-               if(dotpos == fqdn.npos)
+               if(dotpos == qname.npos)
                   break;
 
                pos = dotpos + 1;
@@ -220,14 +225,21 @@ namespace DnsProtocol
             m_store.push_back(0);
          }
 
-         auto WireData() const
+         auto WireData(std::vector<boost::asio::const_buffer>& buf) const
          {
-            return std::make_pair(m_store.cbegin(), m_store.cend());
+            buf.push_back( boost::asio::const_buffer{&m_store[0], m_store.size()} );
          }
 
-         void WireData(std::vector<uint8_t>& store)&&
+         auto WireData(std::vector<uint8_t>& buf) const
          {
-            store = std::move(m_store);
+            std::copy( m_store.begin(), m_store.end(), std::back_inserter(buf) );
+         }
+
+         auto WireData() const
+         {
+            std::vector<uint8_t> buf;
+            WireData(buf);
+            return buf;
          }
 
          friend std::ostream& operator<<(std::ostream& os, const QName& rhs)
@@ -257,54 +269,57 @@ namespace DnsProtocol
    struct Question
    {
       public:
-         explicit Question(const std::string& fqdn, uint16_t qtype, uint16_t qclass)
+         explicit Question(const std::string& qname)
+            : m_qname(qname)
          {
-            QName(fqdn).WireData(m_store);
+         }
 
-            m_store.resize(m_store.size() + 4);
-
-            QType(qtype);
-
-            QClass(qclass);
+         void QType(uint16_t v)
+         {
+            m_store[0] = (v >> 8) & 0xFF;
+            m_store[1] = (v >> 0) & 0xFF;
          }
 
          uint16_t QType() const
          {
-            return (uint16_t(m_store[m_store.size() - 4 + 0]) << 8) |
-                   (uint16_t(m_store[m_store.size() - 4 + 1]) << 0);
-         }
-
-         uint16_t QClass() const
-         {
-            return (uint16_t(m_store[m_store.size() - 4 + 2]) << 8) |
-                   (uint16_t(m_store[m_store.size() - 4 + 3]) << 0);
-         }
-
-         auto WireData() const
-         {
-            return std::make_pair(m_store.cbegin(), m_store.cend());
-         }
-
-         void WireData(std::vector<uint8_t>& store)&&
-         {
-            std::move(m_store.cbegin(), m_store.cend(), std::back_inserter(store));
-         }
-
-      private:
-         void QType(uint16_t v)
-         {
-            m_store[m_store.size() - 4 + 0] = (v >> 8) & 0xFF;
-            m_store[m_store.size() - 4 + 1] = (v >> 0) & 0xFF;
+            return (uint16_t(m_store[0]) << 8) |
+                   (uint16_t(m_store[1]) << 0);
          }
 
          void QClass(uint16_t v)
          {
-            m_store[m_store.size() - 4 + 2] = (v >> 8) & 0xFF;
-            m_store[m_store.size() - 4 + 3] = (v >> 0) & 0xFF;
+            m_store[2] = (v >> 8) & 0xFF;
+            m_store[3] = (v >> 0) & 0xFF;
+         }
+
+         uint16_t QClass() const
+         {
+            return (uint16_t(m_store[2]) << 8) |
+                   (uint16_t(m_store[3]) << 0);
+         }
+
+         auto WireData(std::vector<boost::asio::const_buffer>& buf) const
+         {
+            m_qname.WireData(buf);
+            buf.push_back( boost::asio::const_buffer{&m_store[0], m_store.size()} );
+         }
+
+         auto WireData(std::vector<uint8_t>& buf) const
+         {
+            m_qname.WireData(buf);
+            std::copy( m_store.begin(), m_store.end(), std::back_inserter(buf) );
+         }
+
+         auto WireData() const
+         {
+            std::vector<uint8_t> buf;
+            WireData(buf);
+            return buf;
          }
 
       private:
-         std::vector<uint8_t> m_store;
+         QName m_qname;
+         std::array<uint8_t, 4> m_store;
    };
 };
 

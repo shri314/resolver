@@ -25,7 +25,16 @@ std::string HexRep(unsigned char x, bool keep_printables = false)
    return oss.str();
 }
 
-std::string HexRep(std::string data)
+std::string HexRep(const std::vector<uint8_t>& data)
+{
+   std::ostringstream oss;
+   for(auto x : data)
+      oss << HexRep((unsigned char)x);
+
+   return oss.str();
+}
+
+std::string HexRep(const std::string& data)
 {
    std::ostringstream oss;
    for(auto x : data)
@@ -64,7 +73,7 @@ BOOST_AUTO_TEST_CASE(qname_serialization)
 
       auto&& wd = qn.WireData();
 
-      BOOST_TEST(std::string(wd.first, wd.second) == "\003www\005yahoo\003com\000"s);
+      BOOST_CHECK_EQUAL( HexRep(wd), HexRep("\003www\005yahoo\003com\000"s) );
    }
 
    {
@@ -103,7 +112,7 @@ BOOST_AUTO_TEST_CASE(qname_serialization)
       std::string req = "\xf9\xac\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\5yahoo\3com\0\0\17\0\1"s;
       req.resize(12);
 
-      BOOST_CHECK_EQUAL( HexRep(std::string(wd.first, wd.second)), HexRep(req) );
+      BOOST_CHECK_EQUAL( HexRep(wd), HexRep(req) );
    }
 
    {
