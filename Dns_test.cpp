@@ -60,24 +60,36 @@ using namespace std::string_literals;
 BOOST_AUTO_TEST_CASE(qname_serialization)
 {
    {
-      DnsProtocol::QName qn{"www.yahoo.com"};
+      DnsProtocol::QualifiedName qn;
+      qn.Set("www.yahoo.com");
 
       std::ostringstream oss;
       oss << qn;
 
-      BOOST_TEST(oss.str() == "[3]www[5]yahoo[3]com[0]");
+      BOOST_CHECK_EQUAL(oss.str(), "[3]www[5]yahoo[3]com[0]");
+      BOOST_CHECK_EQUAL(qn.Get(), "www.yahoo.com");
    }
 
    {
-      DnsProtocol::QName qn{"www.yahoo.com"};
+      DnsProtocol::QualifiedName qn;
+      qn.Set("www.yahoo.com");
 
       auto&& wd = qn.WireData();
 
       BOOST_CHECK_EQUAL( HexRep(wd), HexRep("\003www\005yahoo\003com\000"s) );
+      BOOST_CHECK_EQUAL(qn.Get(), "www.yahoo.com");
    }
 
    {
-      DnsProtocol::HeaderPod h;
+      std::string res = "\003www\005yahoo\003com\000"s;
+
+      DnsProtocol::QualifiedName qn( std::make_pair(res.cbegin(), res.cend()) );
+
+      BOOST_CHECK_EQUAL(qn.Get(), "www.yahoo.com");
+   }
+
+   {
+      DnsProtocol::Header h;
       h.ID(0xf9ac);
 
       h.QR_Flag(0);
@@ -118,7 +130,7 @@ BOOST_AUTO_TEST_CASE(qname_serialization)
    {
       std::string res = "\xf9\xac\x81\x80\x00\x01\x00\x03\x00\x00\x00\x00\5yahoo\3com\0\0\17\0\1\300\f\0\17\0\1\0\0\4\245\0\31\0\1\4mta7\3am0\10yahoodns\3net\0\300\f\0\17\0\1\0\0\4\245\0\t\0\1\4mta6\300.\300\f\0\17\0\1\0\0\4\245\0\t\0\1\4mta5\300."s;
 
-      DnsProtocol::HeaderPod h( std::make_pair(res.data(), res.data() + res.size()) );
+      DnsProtocol::Header h( std::make_pair(res.data(), res.data() + res.size()) );
 
       BOOST_CHECK_EQUAL(h.ID(), 0xf9ac);
       BOOST_CHECK_EQUAL(h.QR_Flag(), true);

@@ -10,7 +10,7 @@
 
 namespace DnsProtocol
 {
-   struct HeaderPod
+   struct Header
    {
       public:
          void ID(uint16_t v)
@@ -27,9 +27,11 @@ namespace DnsProtocol
 
          //////////////
 
-         void QR_Flag(bool v)
+         Header& QR_Flag(bool v)
          {
             m_store[2] |= (v ? 0x80 : 0x00);
+
+            return *this;
          }
 
          bool QR_Flag() const
@@ -37,9 +39,11 @@ namespace DnsProtocol
             return (m_store[2] & 0x80) == 0x80;
          }
 
-         void OpCode(uint16_t v)
+         Header& OpCode(uint16_t v)
          {
             m_store[2] |= (v & 0xF) << 3;
+
+            return *this;
          }
 
          uint16_t OpCode() const
@@ -47,9 +51,11 @@ namespace DnsProtocol
             return (m_store[2] >> 3) & 0xF;
          }
 
-         void AA_Flag(bool v)
+         Header& AA_Flag(bool v)
          {
             m_store[2] |= (v ? 0x04 : 0x00);
+
+            return *this;
          }
 
          bool AA_Flag() const
@@ -57,9 +63,11 @@ namespace DnsProtocol
             return (m_store[2] & 0x04) == 0x04;
          }
 
-         void TC_Flag(bool v)
+         Header& TC_Flag(bool v)
          {
             m_store[2] |= (v ? 0x02 : 0x00);
+
+            return *this;
          }
 
          bool TC_Flag() const
@@ -67,9 +75,11 @@ namespace DnsProtocol
             return (m_store[2] & 0x02) == 0x02;
          }
 
-         void RD_Flag(bool v)
+         Header& RD_Flag(bool v)
          {
             m_store[2] |= (v ? 0x01 : 0x00);
+
+            return *this;
          }
 
          bool RD_Flag() const
@@ -79,9 +89,11 @@ namespace DnsProtocol
 
          //////////////
 
-         void RA_Flag(bool v)
+         Header& RA_Flag(bool v)
          {
             m_store[3] |= (v ? 0x80 : 0x00);
+
+            return *this;
          }
 
          bool RA_Flag() const
@@ -89,9 +101,11 @@ namespace DnsProtocol
             return (m_store[3] & 0x80) == 0x80;
          }
 
-         void ZCode(uint16_t v)
+         Header& ZCode(uint16_t v)
          {
             m_store[3] |= (v & 0x7) << 4;
+
+            return *this;
          }
 
          uint16_t ZCode()
@@ -99,9 +113,11 @@ namespace DnsProtocol
             return (m_store[3] >> 4) & 0x7;
          }
 
-         void RCode(uint16_t v)
+         Header& RCode(uint16_t v)
          {
             m_store[3] |= (v & 0xF);
+
+            return *this;
          }
 
          uint16_t RCode() const
@@ -111,10 +127,12 @@ namespace DnsProtocol
 
          /////////////
 
-         void QdCount(uint16_t v)
+         Header& QdCount(uint16_t v)
          {
             m_store[4] = (v >> 8) & 0xFF;
             m_store[5] = (v >> 0) & 0xFF;
+
+            return *this;
          }
 
          uint16_t QdCount() const
@@ -123,10 +141,12 @@ namespace DnsProtocol
                    | (uint16_t(m_store[5]) << 0);
          }
 
-         void AnCount(uint16_t v)
+         Header& AnCount(uint16_t v)
          {
             m_store[6] = (v >> 8) & 0xFF;
             m_store[7] = (v >> 0) & 0xFF;
+
+            return *this;
          }
 
          uint16_t AnCount() const
@@ -135,10 +155,12 @@ namespace DnsProtocol
                    | (uint16_t(m_store[7]) << 0);
          }
 
-         void NsCount(uint16_t v)
+         Header& NsCount(uint16_t v)
          {
             m_store[8] = (v >> 8) & 0xFF;
             m_store[9] = (v >> 0) & 0xFF;
+
+            return *this;
          }
 
          uint16_t NsCount() const
@@ -147,10 +169,12 @@ namespace DnsProtocol
                    | (uint16_t(m_store[9]) << 0);
          }
 
-         void ArCount(uint16_t v)
+         Header& ArCount(uint16_t v)
          {
             m_store[10] = (v >> 8) & 0xFF;
             m_store[11] = (v >> 0) & 0xFF;
+
+            return *this;
          }
 
          uint16_t ArCount() const
@@ -176,12 +200,12 @@ namespace DnsProtocol
             return buf;
          }
 
-         HeaderPod()
+         Header()
          {
          }
 
          template<class Iter>
-         HeaderPod(const std::pair<Iter, Iter>& wd)
+         Header(const std::pair<Iter, Iter>& wd)
          {
             std::copy(
                   wd.first,
@@ -194,11 +218,23 @@ namespace DnsProtocol
          std::array<uint8_t, 12> m_store;
    };
 
-   struct QName
+   struct QualifiedName
    {
       public:
-         explicit QName(const std::string& qname)
+         QualifiedName()
          {
+            m_store.resize(1);
+         }
+
+         template<class Iter>
+         QualifiedName(const std::pair<Iter, Iter>& wd)
+         {
+            std::copy( wd.first, wd.second, std::back_inserter(m_store) );
+         }
+
+         QualifiedName& Set(const std::string& qname)
+         {
+            m_store.clear();
             m_store.reserve(qname.size() + 1);
 
             auto pos = qname.size();
@@ -223,6 +259,36 @@ namespace DnsProtocol
             }
 
             m_store.push_back(0);
+
+            return *this;
+         }
+
+         std::string Get() const
+         {
+            std::string str;
+            std::string sep;
+
+            unsigned c = 0;
+            for(auto x : m_store)
+            {
+               if(c == 0)
+               {
+                  c = (unsigned)x;
+
+                  if(c != 0)
+                     str += sep;
+               }
+               else
+               {
+                  --c;
+
+                  sep = ".";
+
+                  str += (unsigned char)x;
+               }
+            }
+
+            return str;
          }
 
          auto WireData(std::vector<boost::asio::const_buffer>& buf) const
@@ -242,7 +308,7 @@ namespace DnsProtocol
             return buf;
          }
 
-         friend std::ostream& operator<<(std::ostream& os, const QName& rhs)
+         friend std::ostream& operator<<(std::ostream& os, const QualifiedName& rhs)
          {
             unsigned c = 0;
             for(auto x : rhs.m_store)
@@ -269,15 +335,23 @@ namespace DnsProtocol
    struct Question
    {
       public:
-         explicit Question(const std::string& qname)
-            : m_qname(qname)
+         Question()
          {
          }
 
-         void QType(uint16_t v)
+         Question& QName(const std::string& qname)
+         {
+            m_qname.Set(qname);
+
+            return *this;
+         }
+
+         Question& QType(uint16_t v)
          {
             m_store[0] = (v >> 8) & 0xFF;
             m_store[1] = (v >> 0) & 0xFF;
+
+            return *this;
          }
 
          uint16_t QType() const
@@ -286,10 +360,12 @@ namespace DnsProtocol
                    (uint16_t(m_store[1]) << 0);
          }
 
-         void QClass(uint16_t v)
+         Question& QClass(uint16_t v)
          {
             m_store[2] = (v >> 8) & 0xFF;
             m_store[3] = (v >> 0) & 0xFF;
+
+            return *this;
          }
 
          uint16_t QClass() const
@@ -318,7 +394,7 @@ namespace DnsProtocol
          }
 
       private:
-         QName m_qname;
+         QualifiedName m_qname;
          std::array<uint8_t, 4> m_store;
    };
 };

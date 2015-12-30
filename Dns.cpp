@@ -42,7 +42,9 @@ int main(int argc, char** argv)
    io_service.run();
 
 
-   DnsProtocol::QName qn{"www.yahoo.com"};
+   DnsProtocol::QualifiedName qn;
+   
+   qn.Set("www.yahoo.com");
 
    std::ostringstream oss; oss << qn;
 
