@@ -13,10 +13,12 @@ namespace DnsProtocol
    struct Header
    {
       public:
-         void ID(uint16_t v)
+         Header& ID(uint16_t v)
          {
             m_store[0] = (v >> 8) & 0xFF;
             m_store[1] = (v >> 0) & 0xFF;
+
+            return *this;
          }
 
          uint16_t ID() const
@@ -29,7 +31,10 @@ namespace DnsProtocol
 
          Header& QR_Flag(bool v)
          {
-            m_store[2] |= (v ? 0x80 : 0x00);
+            if(v)
+               m_store[2] |= 0x80;
+            else
+               m_store[2] &= ~0x80;
 
             return *this;
          }
@@ -42,6 +47,7 @@ namespace DnsProtocol
          Header& OpCode(uint16_t v)
          {
             m_store[2] |= (v & 0xF) << 3;
+            m_store[2] &= ~((~v & 0xF) << 3);
 
             return *this;
          }
@@ -53,7 +59,10 @@ namespace DnsProtocol
 
          Header& AA_Flag(bool v)
          {
-            m_store[2] |= (v ? 0x04 : 0x00);
+            if(v)
+               m_store[2] |= 0x04;
+            else
+               m_store[2] &= ~0x04;
 
             return *this;
          }
@@ -65,7 +74,10 @@ namespace DnsProtocol
 
          Header& TC_Flag(bool v)
          {
-            m_store[2] |= (v ? 0x02 : 0x00);
+            if(v)
+               m_store[2] |= 0x02;
+            else
+               m_store[2] &= ~0x02;
 
             return *this;
          }
@@ -77,7 +89,10 @@ namespace DnsProtocol
 
          Header& RD_Flag(bool v)
          {
-            m_store[2] |= (v ? 0x01 : 0x00);
+            if(v)
+               m_store[2] |= 0x01;
+            else
+               m_store[2] &= ~0x01;
 
             return *this;
          }
@@ -91,7 +106,10 @@ namespace DnsProtocol
 
          Header& RA_Flag(bool v)
          {
-            m_store[3] |= (v ? 0x80 : 0x00);
+            if(v)
+               m_store[3] |= 0x80;
+            else
+               m_store[3] &= ~0x80;
 
             return *this;
          }
@@ -104,6 +122,7 @@ namespace DnsProtocol
          Header& ZCode(uint16_t v)
          {
             m_store[3] |= (v & 0x7) << 4;
+            m_store[3] &= ~((~v & 0x7) << 4);
 
             return *this;
          }
@@ -116,6 +135,7 @@ namespace DnsProtocol
          Header& RCode(uint16_t v)
          {
             m_store[3] |= (v & 0xF);
+            m_store[3] &= ~(~v & 0xF);
 
             return *this;
          }
@@ -202,6 +222,7 @@ namespace DnsProtocol
 
          Header()
          {
+            ZCode(0);
          }
 
          template<class Iter>
