@@ -203,20 +203,20 @@ namespace DnsProtocol
                    | (uint16_t(m_store[11]) << 0);
          }
 
-         auto WireData(std::vector<boost::asio::const_buffer>& buf) const
+         auto Save(std::vector<boost::asio::const_buffer>& buf) const
          {
             buf.push_back( boost::asio::const_buffer{&m_store[0], m_store.size()} );
          }
 
-         auto WireData(std::vector<uint8_t>& buf) const
+         auto Save(std::vector<uint8_t>& buf) const
          {
             std::copy( m_store.begin(), m_store.end(), std::back_inserter(buf) );
          }
 
-         auto WireData() const
+         auto Save() const
          {
             std::vector<uint8_t> buf;
-            WireData(buf);
+            Save(buf);
             return buf;
          }
 
@@ -239,6 +239,33 @@ namespace DnsProtocol
          std::array<uint8_t, 12> m_store;
    };
 
+   struct bad_name : public std::exception
+   {
+   public:
+      bad_name(const char* const str)
+         : m_str(str)
+      {
+      }
+
+      bad_name(bad_name& rhs)
+         : m_str( rhs.m_str )
+      {
+      }
+
+      bad_name(bad_name&& rhs)
+         : m_str( rhs.m_str )
+      {
+      }
+
+      const char* what() const noexcept { return m_str; }
+
+      void operator=(const bad_name&) = delete;
+      void operator=(bad_name&&) = delete;
+
+   private:
+      const char* const m_str;
+   };
+
    struct QualifiedName
    {
       public:
@@ -248,40 +275,46 @@ namespace DnsProtocol
          }
 
          template<class Iter>
-         QualifiedName(const std::pair<Iter, Iter>& wd)
+         QualifiedName& Set(Iter begin, Iter end)
          {
-            std::copy( wd.first, wd.second, std::back_inserter(m_store) );
+            m_store.clear();
+            m_store.reserve( end - begin + 1 );
+
+            while(true)
+            {
+               auto pos = std::find(begin, end, '.');
+
+               auto sz = pos - begin;
+
+               if(sz == 0)
+                  break;
+
+               if(sz > 63)
+               {
+                  throw bad_name("length too long");
+               }
+
+               m_store.push_back(sz);
+
+               std::copy( begin, pos, std::back_inserter(m_store) );
+
+               begin = (pos == end) ? pos : (pos + 1);
+
+               if(begin == end)
+                  break;
+            }
+
+            if(begin == end)
+               m_store.push_back(0);
+            else
+               throw bad_name("wrong format");
+
+            return *this;
          }
 
          QualifiedName& Set(const std::string& qname)
          {
-            m_store.clear();
-            m_store.reserve(qname.size() + 1);
-
-            auto pos = qname.size();
-            pos = 0;
-
-            while(true)
-            {
-               auto dotpos = qname.find('.', pos);
-
-               auto endpos = (dotpos == qname.npos) ? qname.size() : dotpos;
-
-               uint8_t sz = (endpos - pos) > 255 ? 255 : (endpos - pos);
-
-               m_store.push_back(sz);
-
-               std::copy(qname.data() + pos, qname.data() + pos + sz, std::back_inserter(m_store));
-
-               if(dotpos == qname.npos)
-                  break;
-
-               pos = dotpos + 1;
-            }
-
-            m_store.push_back(0);
-
-            return *this;
+            return Set(qname.begin(), qname.end());
          }
 
          std::string Get() const
@@ -312,22 +345,32 @@ namespace DnsProtocol
             return str;
          }
 
-         auto WireData(std::vector<boost::asio::const_buffer>& buf) const
+         auto Save(std::vector<boost::asio::const_buffer>& buf) const
          {
             buf.push_back( boost::asio::const_buffer{&m_store[0], m_store.size()} );
          }
 
-         auto WireData(std::vector<uint8_t>& buf) const
+         auto Save(std::vector<uint8_t>& buf) const
          {
             std::copy( m_store.begin(), m_store.end(), std::back_inserter(buf) );
          }
 
-         auto WireData() const
+         auto Save() const
          {
             std::vector<uint8_t> buf;
-            WireData(buf);
+            Save(buf);
             return buf;
          }
+
+         /*
+         template<class Iter>
+         std::pair<Iter, Iter> Load(const std::pair<Iter, Iter>& wd)
+         {
+            std::copy( wd.first, wd.second, std::back_inserter(m_store) );
+
+            return make_pair( wd.second, wd.second );
+         }
+         */
 
          friend std::ostream& operator<<(std::ostream& os, const QualifiedName& rhs)
          {
@@ -367,6 +410,11 @@ namespace DnsProtocol
             return *this;
          }
 
+         std::string QName() const
+         {
+            return m_qname.Get();
+         }
+
          Question& QType(uint16_t v)
          {
             m_store[0] = (v >> 8) & 0xFF;
@@ -395,24 +443,34 @@ namespace DnsProtocol
                    (uint16_t(m_store[3]) << 0);
          }
 
-         auto WireData(std::vector<boost::asio::const_buffer>& buf) const
+         auto Save(std::vector<boost::asio::const_buffer>& buf) const
          {
-            m_qname.WireData(buf);
+            m_qname.Save(buf);
             buf.push_back( boost::asio::const_buffer{&m_store[0], m_store.size()} );
          }
 
-         auto WireData(std::vector<uint8_t>& buf) const
+         auto Save(std::vector<uint8_t>& buf) const
          {
-            m_qname.WireData(buf);
+            m_qname.Save(buf);
             std::copy( m_store.begin(), m_store.end(), std::back_inserter(buf) );
          }
 
-         auto WireData() const
+         auto Save() const
          {
             std::vector<uint8_t> buf;
-            WireData(buf);
+            Save(buf);
             return buf;
          }
+
+         /*
+         template<class Iter>
+         std::pair<Iter, Iter> Load(const std::pair<Iter, Iter>& wd)
+         {
+            auto&& wdremaining = m_qname.Save(wd);
+
+            std::copy( wdremaining.first, wdremaining.second, std::back_inserter(m_store) );
+         }
+         */
 
       private:
          QualifiedName m_qname;

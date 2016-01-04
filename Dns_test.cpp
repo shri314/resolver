@@ -8,51 +8,53 @@
 #include <sstream>
 #include <iostream>
 
-std::string HexRep(unsigned char x, bool keep_printables = false)
+std::string OctRep(unsigned char x, bool keep_printables = false)
 {
    std::ostringstream oss;
 
-   if(keep_printables && std::isprint(x) && !std::isspace(x))
+   if(isalpha(x) || (keep_printables && std::isprint(x) && !std::isspace(x)))
       oss << x;
    else
    {
-      if(x < 16)
-         oss << "\\x0" << std::hex << (unsigned)x;
+      if(x < 8)
+         oss << "\\00" << std::oct << (unsigned)x;
+      else if(x < 64)
+         oss << "\\0" << std::oct << (unsigned)x;
       else
-         oss << "\\x" << std::hex << (unsigned)x;
+         oss << "\\" << std::oct << (unsigned)x;
    }
 
    return oss.str();
 }
 
-std::string HexRep(const std::vector<uint8_t>& data)
+std::string OctRep(const std::vector<uint8_t>& data)
 {
    std::ostringstream oss;
    for(auto x : data)
-      oss << HexRep((unsigned char)x);
+      oss << OctRep((unsigned char)x);
 
    return oss.str();
 }
 
-std::string HexRep(const std::string& data)
+std::string OctRep(const std::string& data)
 {
    std::ostringstream oss;
    for(auto x : data)
-      oss << HexRep((unsigned char)x);
+      oss << OctRep((unsigned char)x);
 
    return oss.str();
 }
 
-std::string HexRep(uint32_t x)
+std::string OctRep(uint32_t x)
 {
    unsigned char* b = reinterpret_cast<unsigned char*>(&x);
-   return HexRep(std::string(b, b + sizeof(x)));
+   return OctRep(std::string(b, b + sizeof(x)));
 }
 
-std::string HexRep(uint16_t x)
+std::string OctRep(uint16_t x)
 {
    unsigned char* b = reinterpret_cast<unsigned char*>(&x);
-   return HexRep(std::string(b, b + sizeof(x)));
+   return OctRep(std::string(b, b + sizeof(x)));
 }
 
 using namespace std::string_literals;
@@ -87,38 +89,9 @@ auto make_my_unique(Args&&... args)
 }
 
 
-BOOST_AUTO_TEST_CASE(qname_serialization)
+BOOST_AUTO_TEST_CASE(DnsProtocol_Header)
 {
-   {
-      DnsProtocol::QualifiedName qn;
-      qn.Set("www.yahoo.com");
-
-      BOOST_CHECK_EQUAL(qn.Get(), "www.yahoo.com");
-
-      std::ostringstream oss;
-      oss << qn;
-
-      BOOST_CHECK_EQUAL(oss.str(), "[3]www[5]yahoo[3]com[0]");
-   }
-
-   {
-      DnsProtocol::QualifiedName qn;
-      qn.Set("www.yahoo.com");
-
-      auto&& wd = qn.WireData();
-
-      BOOST_CHECK_EQUAL(HexRep(wd), HexRep("\003www\005yahoo\003com\000"s));
-      BOOST_CHECK_EQUAL(qn.Get(), "www.yahoo.com");
-   }
-
-   {
-      std::string res = "\003www\005yahoo\003com\000"s;
-
-      DnsProtocol::QualifiedName qn(std::make_pair(res.cbegin(), res.cend()));
-
-      BOOST_CHECK_EQUAL(qn.Get(), "www.yahoo.com");
-   }
-
+   return;
    {
       auto p = make_my_unique<DnsProtocol::Header>();
 
@@ -154,9 +127,9 @@ BOOST_AUTO_TEST_CASE(qname_serialization)
       std::string req = "\xf9\xac\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\5yahoo\3com\0\0\17\0\1"s;
       req.resize(12);
 
-      auto&& wd = p->WireData();
+      auto&& wd = p->Save();
 
-      BOOST_CHECK_EQUAL( HexRep(wd), HexRep(req) );
+      BOOST_CHECK_EQUAL( OctRep(wd), OctRep(req) );
    }
 
    {
@@ -178,4 +151,132 @@ BOOST_AUTO_TEST_CASE(qname_serialization)
       BOOST_CHECK_EQUAL(p->NsCount(), 0);
       BOOST_CHECK_EQUAL(p->ArCount(), 0);
    }
+}
+
+
+BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName)
+{
+   {
+      DnsProtocol::QualifiedName qn;
+      qn.Set("www.yahoo.com");
+
+      auto&& wd = qn.Save();
+
+      BOOST_CHECK_EQUAL(OctRep(wd), OctRep("\003www\005yahoo\003com\000"s));
+      BOOST_CHECK_EQUAL(qn.Get(), "www.yahoo.com");
+
+      {
+         std::ostringstream oss;
+         oss << qn;
+
+         BOOST_CHECK_EQUAL(oss.str(), "[3]www[5]yahoo[3]com[0]");
+      }
+   }
+
+   // below size limit
+   {
+      DnsProtocol::QualifiedName qn;
+      qn.Set("yahooyahooyahooyahooyahooyahooyahooyahooyahooyahooyahooyahooyah.com");
+
+      std::ostringstream oss;
+      oss << qn;
+
+      BOOST_CHECK_EQUAL(oss.str(), "[63]yahooyahooyahooyahooyahooyahooyahooyahooyahooyahooyahooyahooyah[3]com[0]");
+   }
+
+   // beyond size limit
+   {
+      DnsProtocol::QualifiedName qn;
+
+      BOOST_CHECK_EXCEPTION(
+            qn.Set("yahooyahooyahooyahooyahooyahooyahooyahooyahooyahooyahooyahooyahX.com"),
+            DnsProtocol::bad_name,
+            [](const auto& e) { return e.what() == "length too long"s; }
+         );
+   }
+
+   // With ending dot
+   {
+      DnsProtocol::QualifiedName qn;
+
+      qn.Set("www.yahoo.com.");
+
+      auto&& wd = qn.Save();
+
+      BOOST_CHECK_EQUAL(OctRep(wd), OctRep("\003www\005yahoo\003com\000"s));
+      BOOST_CHECK_EQUAL(qn.Get(), "www.yahoo.com");
+   }
+
+   // With ending extra dots
+   {
+      DnsProtocol::QualifiedName qn;
+
+      BOOST_CHECK_EXCEPTION(
+            qn.Set("www.yahoo.com.."),
+            DnsProtocol::bad_name,
+            [](const auto& e) { return e.what() == "wrong format"s; }
+         );
+   }
+
+   // With extra dots
+   {
+      DnsProtocol::QualifiedName qn;
+
+      BOOST_CHECK_EXCEPTION(
+            qn.Set("www.yahoo..com"),
+            DnsProtocol::bad_name,
+            [](const auto& e) { return e.what() == "wrong format"s; }
+         );
+   }
+
+   // Load
+   /*
+   {
+      std::string res = "\003www\005yahoo\003com\000"s;
+
+      DnsProtocol::QualifiedName qn;
+      
+      qn.Load(std::make_pair(res.cbegin(), res.cend()));
+
+      BOOST_CHECK_EQUAL(qn.Get(), "www.yahoo.com");
+   }
+   */
+}
+
+
+BOOST_AUTO_TEST_CASE(DnsProtocol_Question)
+{
+   return;
+   {
+      auto p = make_my_unique<DnsProtocol::Question>();
+
+      p->QName("yahoo.com");
+      p->QType(15);
+      p->QClass(1);
+
+      BOOST_CHECK_EQUAL(p->QName(), "yahoo.com");
+      BOOST_CHECK_EQUAL(p->QType(), 15);
+      BOOST_CHECK_EQUAL(p->QClass(), 1);
+
+      std::string req = "\5yahoo\3com\x00\x00\x0f\x00\x01"s;
+      req.resize(15);
+
+      auto&& wd = p->Save();
+
+      BOOST_CHECK_EQUAL( OctRep(wd), OctRep(req) );
+   }
+
+   /*
+   {
+      std::string res = "\x05yahoo\x03com\x00\x00\x0f\x00\x01"s;
+
+      auto p = make_my_unique<DnsProtocol::Question>();
+      
+      p->Load( std::make_pair(res.data(), res.data() + res.size()) );
+
+      BOOST_CHECK_EQUAL(p->QName(), "yahoo.com");
+      BOOST_CHECK_EQUAL(p->QType(), 15);
+      BOOST_CHECK_EQUAL(p->QClass(), 1);
+   }
+   */
 }
