@@ -10,6 +10,60 @@
 
 namespace DnsProtocol
 {
+   struct bad_name : public std::exception
+   {
+   public:
+      bad_name(const char* const str)
+         : m_str(str)
+      {
+      }
+
+      bad_name(bad_name& rhs)
+         : m_str( rhs.m_str )
+      {
+      }
+
+      bad_name(bad_name&& rhs)
+         : m_str( rhs.m_str )
+      {
+      }
+
+      const char* what() const noexcept { return m_str; }
+
+      void operator=(const bad_name&) = delete;
+      void operator=(bad_name&&) = delete;
+
+   private:
+      const char* const m_str;
+   };
+
+   struct bad_data_stream : public std::exception
+   {
+   public:
+      bad_data_stream(const char* const str)
+         : m_str(str)
+      {
+      }
+
+      bad_data_stream(bad_data_stream& rhs)
+         : m_str( rhs.m_str )
+      {
+      }
+
+      bad_data_stream(bad_data_stream&& rhs)
+         : m_str( rhs.m_str )
+      {
+      }
+
+      const char* what() const noexcept { return m_str; }
+
+      void operator=(const bad_data_stream&) = delete;
+      void operator=(bad_data_stream&&) = delete;
+
+   private:
+      const char* const m_str;
+   };
+
    struct Header
    {
       public:
@@ -226,44 +280,18 @@ namespace DnsProtocol
          }
 
          template<class Iter>
-         Header(const std::pair<Iter, Iter>& wd)
+         void Load(Iter& begin, Iter end)
          {
-            std::copy(
-                  wd.first,
-                  wd.second - wd.first > m_store.size() ? wd.first + m_store.size() : wd.second,
-                  m_store.begin()
-               );
+            if( std::distance(begin, end) < m_store.size() )
+               throw bad_data_stream("truncated");
+
+            std::copy( begin, begin + m_store.size(), m_store.begin() );
+
+            begin += m_store.size();
          }
 
       private:
          std::array<uint8_t, 12> m_store;
-   };
-
-   struct bad_name : public std::exception
-   {
-   public:
-      bad_name(const char* const str)
-         : m_str(str)
-      {
-      }
-
-      bad_name(bad_name& rhs)
-         : m_str( rhs.m_str )
-      {
-      }
-
-      bad_name(bad_name&& rhs)
-         : m_str( rhs.m_str )
-      {
-      }
-
-      const char* what() const noexcept { return m_str; }
-
-      void operator=(const bad_name&) = delete;
-      void operator=(bad_name&&) = delete;
-
-   private:
-      const char* const m_str;
    };
 
    struct QualifiedName
@@ -275,10 +303,61 @@ namespace DnsProtocol
          }
 
          template<class Iter>
-         QualifiedName& Set(Iter begin, Iter end)
+         void Load(Iter& begin, Iter end)
          {
-            m_store.clear();
-            m_store.reserve( end - begin + 1 );
+            decltype(m_store) t_store;
+
+            t_store.clear();
+            t_store.reserve( 255 );
+
+            unsigned c = 0;
+            while(begin != end)
+            {
+               auto x = *begin++;
+
+               if(t_store.size() >= 255)
+                  throw bad_data_stream("length too long");
+
+               t_store.push_back( static_cast<uint8_t>(x) );
+
+               if(c == 0)
+               {
+                  c = static_cast<unsigned>(x);
+
+                  if(c < 0 || c > 63)
+                  {
+                     throw bad_data_stream("length too long");
+                  }
+                  else if(c == 0)
+                  {
+                     break;
+                  }
+               }
+               else
+               {
+                  --c;
+
+                  if( c == 0 && begin == end )
+                     throw bad_data_stream("truncated");
+               }
+            }
+
+            if(c != 0)
+               throw bad_data_stream("truncated");
+
+            swap( m_store, t_store );
+         }
+
+
+         QualifiedName& Set(const std::string& qname)
+         {
+            auto begin = qname.begin();
+            auto end = qname.end();
+
+            decltype(m_store) t_store;
+
+            t_store.clear();
+            t_store.reserve( std::min( static_cast<int>(std::distance(begin, end) + 1), 255 ) );
 
             while(true)
             {
@@ -287,34 +366,40 @@ namespace DnsProtocol
                auto sz = pos - begin;
 
                if(sz == 0)
-                  break;
-
-               if(sz > 63)
+               {
+                  if(begin != end)
+                     throw bad_name("wrong format");
+                  else
+                     break;
+               }
+               else if(sz > 63)
                {
                   throw bad_name("length too long");
                }
 
-               m_store.push_back(sz);
+               if(t_store.size() >= 255)
+                  throw bad_name("length too long");
 
-               std::copy( begin, pos, std::back_inserter(m_store) );
+               t_store.push_back(sz);
+
+               std::copy( begin, pos, std::back_inserter(t_store) );
 
                begin = (pos == end) ? pos : (pos + 1);
 
                if(begin == end)
+               {
+                  if(t_store.size() >= 255)
+                     throw bad_name("length too long");
+
+                  t_store.push_back(0);
+
                   break;
+               }
             }
 
-            if(begin == end)
-               m_store.push_back(0);
-            else
-               throw bad_name("wrong format");
+            swap( m_store, t_store );
 
             return *this;
-         }
-
-         QualifiedName& Set(const std::string& qname)
-         {
-            return Set(qname.begin(), qname.end());
          }
 
          std::string Get() const
@@ -327,7 +412,7 @@ namespace DnsProtocol
             {
                if(c == 0)
                {
-                  c = (unsigned)x;
+                  c = static_cast<unsigned>(x);
 
                   if(c != 0)
                      str += sep;
@@ -338,7 +423,7 @@ namespace DnsProtocol
 
                   sep = ".";
 
-                  str += (unsigned char)x;
+                  str += static_cast<unsigned char>(x);
                }
             }
 
@@ -362,34 +447,9 @@ namespace DnsProtocol
             return buf;
          }
 
-         /*
-         template<class Iter>
-         std::pair<Iter, Iter> Load(const std::pair<Iter, Iter>& wd)
-         {
-            std::copy( wd.first, wd.second, std::back_inserter(m_store) );
-
-            return make_pair( wd.second, wd.second );
-         }
-         */
-
          friend std::ostream& operator<<(std::ostream& os, const QualifiedName& rhs)
          {
-            unsigned c = 0;
-            for(auto x : rhs.m_store)
-            {
-               if(c == 0)
-               {
-                  c = (unsigned)x;
-                  os << "[" << c << "]";
-               }
-               else
-               {
-                  --c;
-                  os << (unsigned char)x;
-               }
-            }
-
-            return os;
+            return os << rhs.Get();
          }
 
       private:
@@ -462,15 +522,18 @@ namespace DnsProtocol
             return buf;
          }
 
-         /*
          template<class Iter>
-         std::pair<Iter, Iter> Load(const std::pair<Iter, Iter>& wd)
+         void Load(Iter& begin, Iter end)
          {
-            auto&& wdremaining = m_qname.Save(wd);
+            m_qname.Load(begin, end);
 
-            std::copy( wdremaining.first, wdremaining.second, std::back_inserter(m_store) );
+            if( std::distance(begin, end) < m_store.size() )
+               throw bad_data_stream("truncated");
+
+            std::copy( begin, begin + m_store.size(), m_store.begin() );
+
+            begin += m_store.size();
          }
-         */
 
       private:
          QualifiedName m_qname;

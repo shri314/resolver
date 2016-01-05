@@ -91,7 +91,7 @@ auto make_my_unique(Args&&... args)
 
 BOOST_AUTO_TEST_CASE(DnsProtocol_Header)
 {
-   return;
+   // Save
    {
       auto p = make_my_unique<DnsProtocol::Header>();
 
@@ -132,10 +132,16 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Header)
       BOOST_CHECK_EQUAL( OctRep(wd), OctRep(req) );
    }
 
+   // Load
    {
       std::string res = "\xf9\xac\x81\x80\x00\x01\x00\x03\x00\x00\x00\x00\5yahoo\3com\0\0\17\0\1\300\f\0\17\0\1\0\0\4\245\0\31\0\1\4mta7\3am0\10yahoodns\3net\0\300\f\0\17\0\1\0\0\4\245\0\t\0\1\4mta6\300.\300\f\0\17\0\1\0\0\4\245\0\t\0\1\4mta5\300."s;
+      auto&& begin = res.cbegin();
 
-      auto p = make_my_unique<DnsProtocol::Header>( std::make_pair(res.data(), res.data() + res.size()) );
+      auto p = make_my_unique<DnsProtocol::Header>();
+
+      p->Load( begin, res.cend() );
+
+      BOOST_CHECK_EQUAL( std::distance(res.cbegin(), begin), 12 );
 
       BOOST_CHECK_EQUAL(p->ID(), 0xf9ac);
       BOOST_CHECK_EQUAL(p->QR_Flag(), true);
@@ -151,6 +157,20 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Header)
       BOOST_CHECK_EQUAL(p->NsCount(), 0);
       BOOST_CHECK_EQUAL(p->ArCount(), 0);
    }
+
+   // Load with truncated data
+   {
+      std::string res = "\xf9\xac\x81\x80\x00\x01\x00\x03";
+      auto&& begin = res.cbegin();
+
+      auto p = make_my_unique<DnsProtocol::Header>();
+
+      BOOST_CHECK_EXCEPTION(
+            p->Load( begin, res.cend() ),
+            DnsProtocol::bad_data_stream,
+            [](const auto& e) { return e.what() == "truncated"s; }
+         );
+   }
 }
 
 
@@ -158,41 +178,68 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName)
 {
    {
       DnsProtocol::QualifiedName qn;
-      qn.Set("www.yahoo.com");
-
-      auto&& wd = qn.Save();
-
-      BOOST_CHECK_EQUAL(OctRep(wd), OctRep("\003www\005yahoo\003com\000"s));
-      BOOST_CHECK_EQUAL(qn.Get(), "www.yahoo.com");
-
-      {
-         std::ostringstream oss;
-         oss << qn;
-
-         BOOST_CHECK_EQUAL(oss.str(), "[3]www[5]yahoo[3]com[0]");
-      }
+      BOOST_CHECK_EQUAL(qn.Get(), "");
    }
 
-   // below size limit
+   // below 63 label limit
    {
       DnsProtocol::QualifiedName qn;
-      qn.Set("yahooyahooyahooyahooyahooyahooyahooyahooyahooyahooyahooyahooyah.com");
+      qn.Set("www.initial.com");
+      BOOST_CHECK_EQUAL(qn.Get(), "www.initial.com");
+
+      std::string req = std::string(63, 'w') + ".com";
+      qn.Set(req);
 
       std::ostringstream oss;
       oss << qn;
 
-      BOOST_CHECK_EQUAL(oss.str(), "[63]yahooyahooyahooyahooyahooyahooyahooyahooyahooyahooyahooyahooyah[3]com[0]");
+      BOOST_CHECK_EQUAL(qn.Get(), req);
+      BOOST_CHECK_EQUAL(oss.str(), req);
    }
 
-   // beyond size limit
+   // beyond 63 label limit
    {
       DnsProtocol::QualifiedName qn;
+      qn.Set("www.initial.com");
+      BOOST_CHECK_EQUAL(qn.Get(), "www.initial.com");
 
       BOOST_CHECK_EXCEPTION(
-            qn.Set("yahooyahooyahooyahooyahooyahooyahooyahooyahooyahooyahooyahooyahX.com"),
+            qn.Set(std::string(63, 'w') + "X.com"),
             DnsProtocol::bad_name,
             [](const auto& e) { return e.what() == "length too long"s; }
          );
+
+      BOOST_CHECK_EQUAL(qn.Get(), "www.initial.com");
+   }
+
+   // below 255 limit
+   {
+      DnsProtocol::QualifiedName qn;
+      qn.Set("www.initial.com");
+      BOOST_CHECK_EQUAL(qn.Get(), "www.initial.com");
+
+      std::string res = std::string(077, 'w') + '.' + std::string(077, 'a') + '.' + std::string(077, 'b') + '.' + std::string(075, 'c');
+
+      qn.Set(res);
+
+      BOOST_CHECK_EQUAL( qn.Get(), res );
+   }
+
+   // beyond 255 limit
+   {
+      DnsProtocol::QualifiedName qn;
+      qn.Set("www.initial.com");
+      BOOST_CHECK_EQUAL(qn.Get(), "www.initial.com");
+
+      std::string res = std::string(077, 'w') + '.' + std::string(077, 'a') + '.' + std::string(077, 'b') + '.' + std::string(075, 'c');
+
+      BOOST_CHECK_EXCEPTION(
+            qn.Set(res + "X"),
+            DnsProtocol::bad_name,
+            [](const auto& e) { return e.what() == "length too long"s; }
+         );
+
+      BOOST_CHECK_EQUAL(qn.Get(), "www.initial.com");
    }
 
    // With ending dot
@@ -210,43 +257,185 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName)
    // With ending extra dots
    {
       DnsProtocol::QualifiedName qn;
+      qn.Set("www.initial.com");
+      BOOST_CHECK_EQUAL(qn.Get(), "www.initial.com");
 
       BOOST_CHECK_EXCEPTION(
             qn.Set("www.yahoo.com.."),
             DnsProtocol::bad_name,
             [](const auto& e) { return e.what() == "wrong format"s; }
          );
+
+      BOOST_CHECK_EQUAL( qn.Get(), "www.initial.com" );
    }
 
    // With extra dots
    {
       DnsProtocol::QualifiedName qn;
+      qn.Set("www.initial.com");
+      BOOST_CHECK_EQUAL(qn.Get(), "www.initial.com");
 
       BOOST_CHECK_EXCEPTION(
             qn.Set("www.yahoo..com"),
             DnsProtocol::bad_name,
             [](const auto& e) { return e.what() == "wrong format"s; }
          );
+
+      BOOST_CHECK_EQUAL( qn.Get(), "www.initial.com" );
+   }
+
+   // Save
+   {
+      DnsProtocol::QualifiedName qn;
+      qn.Set("www.yahoo.com");
+
+      auto&& wd = qn.Save();
+
+      BOOST_CHECK_EQUAL(OctRep(wd), OctRep("\003www\005yahoo\003com\000"s));
+      BOOST_CHECK_EQUAL(qn.Get(), "www.yahoo.com");
+
+      {
+         std::ostringstream oss;
+         oss << qn;
+
+         BOOST_CHECK_EQUAL(oss.str(), "www.yahoo.com");
+      }
    }
 
    // Load
-   /*
    {
-      std::string res = "\003www\005yahoo\003com\000"s;
+      std::string res = "\3www\5yahoo\3com\0ABCDEFGHIJKLMNOPQRSTUVWXYZ"s;
+      auto&& begin = res.cbegin();
 
       DnsProtocol::QualifiedName qn;
+      qn.Set("www.initial.com");
+      BOOST_CHECK_EQUAL(qn.Get(), "www.initial.com");
       
-      qn.Load(std::make_pair(res.cbegin(), res.cend()));
+      qn.Load(begin, res.cend());
 
+      BOOST_CHECK_EQUAL( std::distance(res.cbegin(), begin), 15 );
+      BOOST_CHECK( begin != res.cend() && *begin == 'A' );
       BOOST_CHECK_EQUAL(qn.Get(), "www.yahoo.com");
    }
-   */
+
+   // Load within exactly supported length of 255
+   {
+      std::string res = 
+         "\77"s + std::string(077, 'w') +
+         "\77"s + std::string(077, 'a') +
+         "\77"s + std::string(077, 'b') +
+         "\75"s + std::string(075, 'c') + "\0"s;
+
+      auto&& begin = res.cbegin();
+
+      DnsProtocol::QualifiedName qn;
+      qn.Set("www.initial.com");
+      BOOST_CHECK_EQUAL(qn.Get(), "www.initial.com");
+      
+      qn.Load(begin, res.cend());
+
+      BOOST_CHECK_EQUAL(qn.Get(), std::string(077, 'w') + '.' + std::string(077, 'a') + '.' + std::string(077, 'b') + '.' + std::string(075, 'c'));
+   }
+
+   // Load with bad length in data > 255
+   {
+      std::string res = 
+         "\77"s + std::string(077, 'w') +
+         "\77"s + std::string(077, 'a') +
+         "\77"s + std::string(077, 'b') +
+         "\76"s + std::string(076, 'c') + "\0"s;
+
+      auto&& begin = res.cbegin();
+
+      DnsProtocol::QualifiedName qn;
+      qn.Set("www.initial.com");
+      BOOST_CHECK_EQUAL(qn.Get(), "www.initial.com");
+      
+      BOOST_CHECK_EXCEPTION(
+            qn.Load(begin, res.cend()),
+            DnsProtocol::bad_data_stream,
+            [](const auto& e) { return e.what() == "length too long"s; }
+         );
+
+      BOOST_CHECK_EQUAL(qn.Get(), "www.initial.com");
+   }
+
+   // Load with bad length in data (label > 63)
+   {
+      std::string res = "\100www\005yahoo\003com\000zZ"s;
+      auto&& begin = res.cbegin();
+
+      DnsProtocol::QualifiedName qn;
+      qn.Set("www.initial.com");
+      BOOST_CHECK_EQUAL(qn.Get(), "www.initial.com");
+      
+      BOOST_CHECK_EXCEPTION(
+            qn.Load(begin, res.cend()),
+            DnsProtocol::bad_data_stream,
+            [](const auto& e) { return e.what() == "length too long"s; }
+         );
+
+      BOOST_CHECK_EQUAL(qn.Get(), "www.initial.com");
+   }
+
+   // Load with bad length in data (label > 63)
+   {
+      std::string res = "\003www\100yahoo\003com\000zZ"s;
+      auto&& begin = res.cbegin();
+
+      DnsProtocol::QualifiedName qn;
+      qn.Set("www.initial.com");
+      BOOST_CHECK_EQUAL(qn.Get(), "www.initial.com");
+      
+      BOOST_CHECK_EXCEPTION(
+            qn.Load(begin, res.cend()),
+            DnsProtocol::bad_data_stream,
+            [](const auto& e) { return e.what() == "length too long"s; }
+         );
+
+      BOOST_CHECK_EQUAL(qn.Get(), "www.initial.com");
+   }
+
+   // Load with truncated data
+   {
+      std::string res = "\003www\005ya"s;
+      auto&& begin = res.cbegin();
+
+      DnsProtocol::QualifiedName qn;
+      qn.Set("www.initial.com");
+      BOOST_CHECK_EQUAL(qn.Get(), "www.initial.com");
+      
+      BOOST_CHECK_EXCEPTION(
+            qn.Load(begin, res.cend()),
+            DnsProtocol::bad_data_stream,
+            [](const auto& e) { return e.what() == "truncated"s; }
+         );
+
+      BOOST_CHECK_EQUAL(qn.Get(), "www.initial.com");
+   }
+
+   // Load with truncated data (not ending with \0)
+   {
+      std::string res = "\003www"s;
+      auto&& begin = res.cbegin();
+
+      DnsProtocol::QualifiedName qn;
+      qn.Set("www.initial.com");
+      BOOST_CHECK_EQUAL(qn.Get(), "www.initial.com");
+      
+      BOOST_CHECK_EXCEPTION(
+            qn.Load(begin, res.cend()),
+            DnsProtocol::bad_data_stream,
+            [](const auto& e) { return e.what() == "truncated"s; }
+         );
+
+      BOOST_CHECK_EQUAL(qn.Get(), "www.initial.com");
+   }
 }
 
 
 BOOST_AUTO_TEST_CASE(DnsProtocol_Question)
 {
-   return;
    {
       auto p = make_my_unique<DnsProtocol::Question>();
 
@@ -266,17 +455,17 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Question)
       BOOST_CHECK_EQUAL( OctRep(wd), OctRep(req) );
    }
 
-   /*
+   // Load
    {
-      std::string res = "\x05yahoo\x03com\x00\x00\x0f\x00\x01"s;
+      std::string res = "\5yahoo\3com\x00\x00\x0f\x00\x01"s;
+      auto&& begin = res.cbegin();
 
       auto p = make_my_unique<DnsProtocol::Question>();
-      
-      p->Load( std::make_pair(res.data(), res.data() + res.size()) );
+
+      p->Load( begin, res.cend() );
 
       BOOST_CHECK_EQUAL(p->QName(), "yahoo.com");
       BOOST_CHECK_EQUAL(p->QType(), 15);
       BOOST_CHECK_EQUAL(p->QClass(), 1);
    }
-   */
 }
