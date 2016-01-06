@@ -13,20 +13,25 @@ namespace DnsProtocol
    struct bad_name : public std::exception
    {
    public:
-      bad_name(const char* const str)
+      bad_name(const char* const str, int code)
          : m_str(str)
+         , m_code(code)
       {
       }
 
       bad_name(bad_name& rhs)
          : m_str( rhs.m_str )
+         , m_code( rhs.m_code )
       {
       }
 
       bad_name(bad_name&& rhs)
          : m_str( rhs.m_str )
+         , m_code( rhs.m_code )
       {
       }
+
+      int code() const noexcept { return m_code; }
 
       const char* what() const noexcept { return m_str; }
 
@@ -35,25 +40,31 @@ namespace DnsProtocol
 
    private:
       const char* const m_str;
+      int m_code;
    };
 
    struct bad_data_stream : public std::exception
    {
    public:
-      bad_data_stream(const char* const str)
+      bad_data_stream(const char* const str, int code)
          : m_str(str)
+         , m_code(code)
       {
       }
 
       bad_data_stream(bad_data_stream& rhs)
          : m_str( rhs.m_str )
+         , m_code( rhs.m_code )
       {
       }
 
       bad_data_stream(bad_data_stream&& rhs)
          : m_str( rhs.m_str )
+         , m_code( rhs.m_code )
       {
       }
+
+      int code() const noexcept { return m_code; }
 
       const char* what() const noexcept { return m_str; }
 
@@ -62,6 +73,7 @@ namespace DnsProtocol
 
    private:
       const char* const m_str;
+      int m_code;
    };
 
    struct Header
@@ -283,7 +295,7 @@ namespace DnsProtocol
          void Load(Iter& begin, Iter end)
          {
             if( std::distance(begin, end) < m_store.size() )
-               throw bad_data_stream("truncated");
+               throw bad_data_stream("truncated", 1);
 
             std::copy( begin, begin + m_store.size(), m_store.begin() );
 
@@ -299,7 +311,7 @@ namespace DnsProtocol
       public:
          QualifiedName()
          {
-            m_store.resize(1);
+            Set(std::string());
          }
 
          template<class Iter>
@@ -316,7 +328,7 @@ namespace DnsProtocol
                auto x = *begin++;
 
                if(t_store.size() >= 255)
-                  throw bad_data_stream("length too long");
+                  throw bad_data_stream("length too long", 1);
 
                t_store.push_back( static_cast<uint8_t>(x) );
 
@@ -326,7 +338,7 @@ namespace DnsProtocol
 
                   if(c < 0 || c > 63)
                   {
-                     throw bad_data_stream("length too long");
+                     throw bad_data_stream("length too long", 2);
                   }
                   else if(c == 0)
                   {
@@ -338,16 +350,15 @@ namespace DnsProtocol
                   --c;
 
                   if( c == 0 && begin == end )
-                     throw bad_data_stream("truncated");
+                     throw bad_data_stream("truncated", 2);
                }
             }
 
             if(c != 0)
-               throw bad_data_stream("truncated");
+               throw bad_data_stream("truncated", 3);
 
             swap( m_store, t_store );
          }
-
 
          QualifiedName& Set(const std::string& qname)
          {
@@ -365,35 +376,38 @@ namespace DnsProtocol
 
                auto sz = pos - begin;
 
-               if(sz == 0)
+               if(sz > 63)
                {
-                  if(begin != end)
-                     throw bad_name("wrong format");
-                  else
-                     break;
-               }
-               else if(sz > 63)
-               {
-                  throw bad_name("length too long");
+                  throw bad_name("length too long", 1);
                }
 
-               if(t_store.size() >= 255)
-                  throw bad_name("length too long");
+               if(t_store.size() + sz >= 255)
+                  throw bad_name("length too long", 2);
 
                t_store.push_back(sz);
 
-               std::copy( begin, pos, std::back_inserter(t_store) );
-
-               begin = (pos == end) ? pos : (pos + 1);
-
-               if(begin == end)
+               if(sz == 0) // we seem to have hit the end
                {
-                  if(t_store.size() >= 255)
-                     throw bad_name("length too long");
+                  if(begin != end)
+                     throw bad_name("wrong format", 1);
+                  else
+                     break;
+               }
+               else
+               {
+                  std::copy( begin, pos, std::back_inserter(t_store) );
 
-                  t_store.push_back(0);
+                  begin = (pos == end) ? pos : (pos + 1);
 
-                  break;
+                  if(begin == end)
+                  {
+                     if(t_store.size() >= 255)
+                        throw bad_name("length too long", 3);
+
+                     t_store.push_back(0);
+
+                     break;
+                  }
                }
             }
 
@@ -528,7 +542,7 @@ namespace DnsProtocol
             m_qname.Load(begin, end);
 
             if( std::distance(begin, end) < m_store.size() )
-               throw bad_data_stream("truncated");
+               throw bad_data_stream("truncated", 4);
 
             std::copy( begin, begin + m_store.size(), m_store.begin() );
 
