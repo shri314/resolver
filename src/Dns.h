@@ -12,68 +12,68 @@ namespace DnsProtocol
 {
    struct bad_name : public std::exception
    {
-   public:
-      bad_name(const char* const str, int code)
-         : m_str(str)
-         , m_code(code)
-      {
-      }
+      public:
+         bad_name(const char* const str, int code)
+            : m_str(str)
+            , m_code(code)
+         {
+         }
 
-      bad_name(bad_name& rhs)
-         : m_str( rhs.m_str )
-         , m_code( rhs.m_code )
-      {
-      }
+         bad_name(bad_name& rhs)
+            : m_str(rhs.m_str)
+            , m_code(rhs.m_code)
+         {
+         }
 
-      bad_name(bad_name&& rhs)
-         : m_str( rhs.m_str )
-         , m_code( rhs.m_code )
-      {
-      }
+         bad_name(bad_name&& rhs)
+            : m_str(rhs.m_str)
+            , m_code(rhs.m_code)
+         {
+         }
 
-      int code() const noexcept { return m_code; }
+         int code() const noexcept { return m_code; }
 
-      const char* what() const noexcept { return m_str; }
+         const char* what() const noexcept { return m_str; }
 
-      void operator=(const bad_name&) = delete;
-      void operator=(bad_name&&) = delete;
+         void operator=(const bad_name&) = delete;
+         void operator=(bad_name&&) = delete;
 
-   private:
-      const char* const m_str;
-      int m_code;
+      private:
+         const char* const m_str;
+         int m_code;
    };
 
    struct bad_data_stream : public std::exception
    {
-   public:
-      bad_data_stream(const char* const str, int code)
-         : m_str(str)
-         , m_code(code)
-      {
-      }
+      public:
+         bad_data_stream(const char* const str, int code)
+            : m_str(str)
+            , m_code(code)
+         {
+         }
 
-      bad_data_stream(bad_data_stream& rhs)
-         : m_str( rhs.m_str )
-         , m_code( rhs.m_code )
-      {
-      }
+         bad_data_stream(bad_data_stream& rhs)
+            : m_str(rhs.m_str)
+            , m_code(rhs.m_code)
+         {
+         }
 
-      bad_data_stream(bad_data_stream&& rhs)
-         : m_str( rhs.m_str )
-         , m_code( rhs.m_code )
-      {
-      }
+         bad_data_stream(bad_data_stream&& rhs)
+            : m_str(rhs.m_str)
+            , m_code(rhs.m_code)
+         {
+         }
 
-      int code() const noexcept { return m_code; }
+         int code() const noexcept { return m_code; }
 
-      const char* what() const noexcept { return m_str; }
+         const char* what() const noexcept { return m_str; }
 
-      void operator=(const bad_data_stream&) = delete;
-      void operator=(bad_data_stream&&) = delete;
+         void operator=(const bad_data_stream&) = delete;
+         void operator=(bad_data_stream&&) = delete;
 
-   private:
-      const char* const m_str;
-      int m_code;
+      private:
+         const char* const m_str;
+         int m_code;
    };
 
    struct Header
@@ -271,12 +271,12 @@ namespace DnsProtocol
 
          auto Save(std::vector<boost::asio::const_buffer>& buf) const
          {
-            buf.push_back( boost::asio::const_buffer{&m_store[0], m_store.size()} );
+            buf.push_back(boost::asio::const_buffer{&m_store[0], m_store.size()});
          }
 
          auto Save(std::vector<uint8_t>& buf) const
          {
-            std::copy( m_store.begin(), m_store.end(), std::back_inserter(buf) );
+            std::copy(m_store.begin(), m_store.end(), std::back_inserter(buf));
          }
 
          auto Save() const
@@ -294,12 +294,49 @@ namespace DnsProtocol
          template<class Iter>
          void Load(Iter& begin, Iter end)
          {
-            if( std::distance(begin, end) < m_store.size() )
+            if(std::distance(begin, end) < m_store.size())
                throw bad_data_stream("truncated", 1);
 
-            std::copy( begin, begin + m_store.size(), m_store.begin() );
+            std::copy(begin, begin + m_store.size(), m_store.begin());
 
             begin += m_store.size();
+         }
+
+         friend std::ostream& operator<<(std::ostream& os, const Header& rhs)
+         {
+            os << "{ ";
+            os << "ID=" << rhs.ID() << ", ";
+            {
+               os << "Flags=[";
+               std::string sep = "";
+               for(auto F :
+                     {
+                        std::string(rhs.QR_Flag() ? "RES" : "QRY"),
+                        std::string(rhs.AA_Flag() ? "AA" : ""),
+                        std::string(rhs.TC_Flag() ? "TC" : ""),
+                        std::string(rhs.RD_Flag() ? "RD" : ""),
+                        std::string(rhs.RA_Flag() ? "RA" : "")
+                     })
+               {
+                  if(!F.empty())
+                  {
+                     os << sep << F;
+                     if(sep.empty())
+                        sep = ",";
+                  }
+               }
+               os << "], ";
+            }
+            os << "OpCode=" << rhs.OpCode() << ", ";
+            os << "RCode=" << rhs.RCode() << ", ";
+
+            os << "QdCount=" << rhs.QdCount() << ", ";
+            os << "AnCount=" << rhs.AnCount() << ", ";
+            os << "NsCount=" << rhs.NsCount() << ", ";
+            os << "ArCount=" << rhs.ArCount() << " ";
+            os << "}";
+
+            return os;
          }
 
       private:
@@ -320,44 +357,43 @@ namespace DnsProtocol
             decltype(m_store) t_store;
 
             t_store.clear();
-            t_store.reserve( 255 );
+            t_store.reserve(255);
 
+            bool nullfound = false;
             unsigned c = 0;
-            while(begin != end)
+            for(; begin != end && !nullfound; ++begin)
             {
-               auto x = *begin++;
+               auto x = *begin;
 
                if(t_store.size() >= 255)
                   throw bad_data_stream("length too long", 1);
 
-               t_store.push_back( static_cast<uint8_t>(x) );
+               t_store.push_back(static_cast<uint8_t>(x));
 
                if(c == 0)
                {
                   c = static_cast<unsigned>(x);
 
-                  if(c < 0 || c > 63)
+                  if(c == 0)
+                  {
+                     // c stayed 0 (which means its a null label)
+                     nullfound = true;
+                  }
+                  else if(c < 0 || c > 63)
                   {
                      throw bad_data_stream("length too long", 2);
-                  }
-                  else if(c == 0)
-                  {
-                     break;
                   }
                }
                else
                {
                   --c;
-
-                  if( c == 0 && begin == end )
-                     throw bad_data_stream("truncated", 2);
                }
             }
 
-            if(c != 0)
-               throw bad_data_stream("truncated", 3);
+            if(!nullfound)
+               throw bad_data_stream("truncated", 2);
 
-            swap( m_store, t_store );
+            swap(m_store, t_store);
          }
 
          QualifiedName& Set(const std::string& qname)
@@ -368,7 +404,7 @@ namespace DnsProtocol
             decltype(m_store) t_store;
 
             t_store.clear();
-            t_store.reserve( std::min( static_cast<int>(std::distance(begin, end) + 1), 255 ) );
+            t_store.reserve(std::min(static_cast<int>(std::distance(begin, end) + 1), 255));
 
             while(true)
             {
@@ -395,7 +431,7 @@ namespace DnsProtocol
                }
                else
                {
-                  std::copy( begin, pos, std::back_inserter(t_store) );
+                  std::copy(begin, pos, std::back_inserter(t_store));
 
                   begin = (pos == end) ? pos : (pos + 1);
 
@@ -411,7 +447,7 @@ namespace DnsProtocol
                }
             }
 
-            swap( m_store, t_store );
+            swap(m_store, t_store);
 
             return *this;
          }
@@ -446,12 +482,12 @@ namespace DnsProtocol
 
          auto Save(std::vector<boost::asio::const_buffer>& buf) const
          {
-            buf.push_back( boost::asio::const_buffer{&m_store[0], m_store.size()} );
+            buf.push_back(boost::asio::const_buffer{&m_store[0], m_store.size()});
          }
 
          auto Save(std::vector<uint8_t>& buf) const
          {
-            std::copy( m_store.begin(), m_store.end(), std::back_inserter(buf) );
+            std::copy(m_store.begin(), m_store.end(), std::back_inserter(buf));
          }
 
          auto Save() const
@@ -520,13 +556,13 @@ namespace DnsProtocol
          auto Save(std::vector<boost::asio::const_buffer>& buf) const
          {
             m_qname.Save(buf);
-            buf.push_back( boost::asio::const_buffer{&m_store[0], m_store.size()} );
+            buf.push_back(boost::asio::const_buffer{&m_store[0], m_store.size()});
          }
 
          auto Save(std::vector<uint8_t>& buf) const
          {
             m_qname.Save(buf);
-            std::copy( m_store.begin(), m_store.end(), std::back_inserter(buf) );
+            std::copy(m_store.begin(), m_store.end(), std::back_inserter(buf));
          }
 
          auto Save() const
@@ -541,10 +577,10 @@ namespace DnsProtocol
          {
             m_qname.Load(begin, end);
 
-            if( std::distance(begin, end) < m_store.size() )
-               throw bad_data_stream("truncated", 4);
+            if(std::distance(begin, end) < m_store.size())
+               throw bad_data_stream("truncated", 3);
 
-            std::copy( begin, begin + m_store.size(), m_store.begin() );
+            std::copy(begin, begin + m_store.size(), m_store.begin());
 
             begin += m_store.size();
          }
