@@ -585,6 +585,11 @@ namespace DnsProtocol
             begin += m_store.size();
          }
 
+         friend std::ostream& operator<<(std::ostream& os, const Question& rhs)
+         {
+            return os << "{ QName=" << rhs.QName() << ", QType=" << rhs.QType() << ", QClass=" << rhs.QClass() << " }";
+         }
+
       private:
          QualifiedName m_qname;
          std::array<uint8_t, 4> m_store;

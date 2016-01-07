@@ -144,95 +144,8 @@ exception_info_t exception_info()
 }
 
 
-BOOST_AUTO_TEST_CASE(DnsProtocol_Header)
+BOOST_AUTO_TEST_CASE(DnsProtocol_Header_Save)
 {
-   // Save
-   {
-      auto p = make_my_unique<DnsProtocol::Header>();
-
-      p->ID(0xf9ac);
-
-      p->QR_Flag(0);
-      p->OpCode(0);
-      p->AA_Flag(0);
-      p->TC_Flag(0);
-      p->RD_Flag(1);
-      p->RA_Flag(0);
-      p->RCode(0);
-
-      p->QdCount(1);
-      p->AnCount(0);
-      p->NsCount(0);
-      p->ArCount(0);
-
-      BOOST_CHECK_EQUAL(p->ID(), 0xf9ac);
-      BOOST_CHECK_EQUAL(p->QR_Flag(), false);
-      BOOST_CHECK_EQUAL(p->OpCode(), 0);
-      BOOST_CHECK_EQUAL(p->AA_Flag(), false);
-      BOOST_CHECK_EQUAL(p->TC_Flag(), false);
-      BOOST_CHECK_EQUAL(p->RD_Flag(), true);
-      BOOST_CHECK_EQUAL(p->RA_Flag(), false);
-      BOOST_CHECK_EQUAL(p->ZCode(), 0);
-      BOOST_CHECK_EQUAL(p->RCode(), 0);
-      BOOST_CHECK_EQUAL(p->QdCount(), 1);
-      BOOST_CHECK_EQUAL(p->AnCount(), 0);
-      BOOST_CHECK_EQUAL(p->NsCount(), 0);
-      BOOST_CHECK_EQUAL(p->ArCount(), 0);
-
-      std::string req = "\xf9\xac\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\5yahoo\3com\0\0\17\0\1"s;
-      req.resize(12);
-
-      auto&& wd = p->Save();
-
-      BOOST_CHECK_EQUAL(OctRep(wd), OctRep(req));
-   }
-
-   // Load
-   {
-      std::string res =
-         "\xf9\xac\x81\x80\x00\x01\x00\x03\x00\x00\x00\x00\5yahoo\3com\0\0\17\0\1\300\f\0\17\0\1\0\0\4\245\0\31\0\1\4mta7\3am0\10yahoodns\3net\0\300\f\0\17\0\1\0\0\4\245\0\t\0\1\4mta6\300.\300\f\0\17\0\1\0\0\4\245\0\t\0\1\4mta5\300."s;
-      auto&& begin = res.cbegin();
-
-      auto p = make_my_unique<DnsProtocol::Header>();
-
-      p->Load(begin, res.cend());
-
-      BOOST_CHECK_EQUAL(std::distance(res.cbegin(), begin), 12);
-
-      BOOST_CHECK_EQUAL(p->ID(), 0xf9ac);
-      BOOST_CHECK_EQUAL(p->QR_Flag(), true);
-      BOOST_CHECK_EQUAL(p->OpCode(), 0);
-      BOOST_CHECK_EQUAL(p->AA_Flag(), false);
-      BOOST_CHECK_EQUAL(p->TC_Flag(), false);
-      BOOST_CHECK_EQUAL(p->RD_Flag(), true);
-      BOOST_CHECK_EQUAL(p->RA_Flag(), true);
-      BOOST_CHECK_EQUAL(p->ZCode(), 0);
-      BOOST_CHECK_EQUAL(p->RCode(), 0);
-      BOOST_CHECK_EQUAL(p->QdCount(), 1);
-      BOOST_CHECK_EQUAL(p->AnCount(), 3);
-      BOOST_CHECK_EQUAL(p->NsCount(), 0);
-      BOOST_CHECK_EQUAL(p->ArCount(), 0);
-   }
-
-   // Load with truncated data
-   {
-      std::string res = "\xf9\xac\x81\x80\x00\x01\x00\x03";
-      auto&& begin = res.cbegin();
-
-      auto p = make_my_unique<DnsProtocol::Header>();
-
-      BOOST_CHECK_EXCEPTION(
-         p->Load(begin, res.cend()),
-         DnsProtocol::bad_data_stream,
-         [](const auto & e)
-      {
-         BOOST_CHECK_EQUAL(e.what(), "truncated"s);
-         BOOST_CHECK_EQUAL(e.code(), 1);
-         return true;
-      }
-      );
-   }
-
    struct
    {
       std::string test_context;
@@ -253,23 +166,105 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Header)
       uint16_t input_NsCount;
       uint16_t input_ArCount;
 
-      exception_info_t expected_exception;
       std::string expected_raw_data;
       std::string expected_stream;
    }
    TestData[] =
    {
       {
-         TEST_CONTEXT("empty"),
+         TEST_CONTEXT("query header"),
+
+         /* ID */ 0xf9ac,
+         /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* OpCode */ 0, /* RCode */ 0,
+         /* QdCount */ 1, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 0,
+
+         "\xf9\xac\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00"s,
+         "{ ID=63916, Flags=[QRY], OpCode=0, RCode=0, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
+      },
+
+      {
+         TEST_CONTEXT("response header"),
+
+         /* ID */ 0x5006,
+         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* OpCode */ 0, /* RCode */ 0,
+         /* QdCount */ 0, /* AnCount */ 1, /* NsCount */ 0, /* ArCount */ 0,
+
+         "\x50\x06\x80\x00\x00\x00\x00\x01\x00\x00\x00\x00"s,
+         "{ ID=20486, Flags=[RES], OpCode=0, RCode=0, QdCount=0, AnCount=1, NsCount=0, ArCount=0 }",
+      },
+
+      {
+         TEST_CONTEXT("response header with RCode"),
+
+         /* ID */ 0x5006,
+         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* OpCode */ 0, /* RCode */ 9,
+         /* QdCount */ 0, /* AnCount */ 1, /* NsCount */ 0, /* ArCount */ 0,
+
+         "\x50\x06\x80\x09\x00\x00\x00\x01\x00\x00\x00\x00"s,
+         "{ ID=20486, Flags=[RES], OpCode=0, RCode=9, QdCount=0, AnCount=1, NsCount=0, ArCount=0 }",
+      },
+
+      {
+         TEST_CONTEXT("query header with RD"),
 
          /* ID */ 0xf9ac,
          /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ true, /* RA_Flag */ false,
          /* OpCode */ 0, /* RCode */ 0,
          /* QdCount */ 1, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 0,
 
-         exception_info(),
          "\xf9\xac\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00"s,
-         "",
+         "{ ID=63916, Flags=[QRY,RD], OpCode=0, RCode=0, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
+      },
+
+      {
+         TEST_CONTEXT("query header with OpCode"),
+
+         /* ID */ 0xf9ac,
+         /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* OpCode */ 0xf, /* RCode */ 0,
+         /* QdCount */ 1, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 0,
+
+         "\xf9\xac\x78\x00\x00\x01\x00\x00\x00\x00\x00\x00"s,
+         "{ ID=63916, Flags=[QRY], OpCode=15, RCode=0, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
+      },
+
+      {
+         TEST_CONTEXT("response header with AA"),
+
+         /* ID */ 0x1111,
+         /* QR_Flag */ true, /* AA_Flag */ true, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* OpCode */ 0, /* RCode */ 0,
+         /* QdCount */ 0, /* AnCount */ 0, /* NsCount */ 1, /* ArCount */ 0,
+
+         "\x11\x11\x84\x00\x00\x00\x00\x00\x00\x01\x00\x00"s,
+         "{ ID=4369, Flags=[RES,AA], OpCode=0, RCode=0, QdCount=0, AnCount=0, NsCount=1, ArCount=0 }",
+      },
+
+      {
+         TEST_CONTEXT("response header with TC"),
+
+         /* ID */ 0xFFFF,
+         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ true, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* OpCode */ 0, /* RCode */ 0,
+         /* QdCount */ 0, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 1,
+
+         "\xFF\xFF\x82\x00\x00\x00\x00\x00\x00\x00\x00\x01"s,
+         "{ ID=65535, Flags=[RES,TC], OpCode=0, RCode=0, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
+      },
+
+      {
+         TEST_CONTEXT("response header with RA"),
+
+         /* ID */ 0xFFFF,
+         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ true,
+         /* OpCode */ 0, /* RCode */ 0,
+         /* QdCount */ 0, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 1,
+
+         "\xFF\xFF\x80\x80\x00\x00\x00\x00\x00\x00\x00\x01"s,
+         "{ ID=65535, Flags=[RES,RA], OpCode=0, RCode=0, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
       },
    };
 
@@ -328,12 +323,268 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Header)
    }
 }
 
+
+BOOST_AUTO_TEST_CASE(DnsProtocol_Header_Load)
+{
+   struct
+   {
+      std::string test_context;
+
+      std::string input_raw_data;
+
+      exception_info_t expected_exception;
+
+      int expected_distance;
+
+      std::string expected_stream;
+
+      uint16_t expected_ID;
+
+      bool expected_QR_Flag;
+      bool expected_AA_Flag;
+      bool expected_TC_Flag;
+      bool expected_RD_Flag;
+      bool expected_RA_Flag;
+
+      uint16_t expected_OpCode;
+      uint16_t expected_RCode;
+
+      uint16_t expected_QdCount;
+      uint16_t expected_AnCount;
+      uint16_t expected_NsCount;
+      uint16_t expected_ArCount;
+   }
+   TestData[] =
+   {
+      {
+         TEST_CONTEXT("Load query header"),
+         "\xf9\xac\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00"s,
+
+         exception_info(),
+         12,
+         "{ ID=63916, Flags=[QRY], OpCode=0, RCode=0, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
+
+         /* ID */ 0xf9ac,
+         /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* OpCode */ 0, /* RCode */ 0,
+         /* QdCount */ 1, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 0,
+      },
+
+      {
+         TEST_CONTEXT("Load query header (with data beyond header)"),
+         "\xf9\xac\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00ZABCDEFGHIJKLMNOP"s,
+
+         exception_info(),
+         12,
+         "{ ID=63916, Flags=[QRY], OpCode=0, RCode=0, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
+
+         /* ID */ 0xf9ac,
+         /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* OpCode */ 0, /* RCode */ 0,
+         /* QdCount */ 1, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 0,
+      },
+
+      {
+         TEST_CONTEXT("Load response header"),
+         "\x50\x06\x80\x00\x00\x00\x00\x01\x00\x00\x00\x00"s,
+
+         exception_info(),
+         12,
+         "{ ID=20486, Flags=[RES], OpCode=0, RCode=0, QdCount=0, AnCount=1, NsCount=0, ArCount=0 }",
+
+         /* ID */ 0x5006,
+         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* OpCode */ 0, /* RCode */ 0,
+         /* QdCount */ 0, /* AnCount */ 1, /* NsCount */ 0, /* ArCount */ 0,
+      },
+
+      {
+         TEST_CONTEXT("Load response header (with data beyond header)"),
+         "\x50\x06\x80\x00\x00\x00\x00\x01\x00\x00\x00\x00ZABCDEFGHIJKLMNOP"s,
+
+         exception_info(),
+         12,
+         "{ ID=20486, Flags=[RES], OpCode=0, RCode=0, QdCount=0, AnCount=1, NsCount=0, ArCount=0 }",
+
+         /* ID */ 0x5006,
+         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* OpCode */ 0, /* RCode */ 0,
+         /* QdCount */ 0, /* AnCount */ 1, /* NsCount */ 0, /* ArCount */ 0,
+      },
+
+      {
+         TEST_CONTEXT("Load a truncated response header"),
+         "\x50\x06\x80\x00\x00\x00\x00\x01\x00\x00\x00"s,
+
+         exception_info<DnsProtocol::bad_data_stream>("truncated"s, 1),
+         11,
+         "",
+      },
+
+      {
+         TEST_CONTEXT("Load response header with RCode"),
+         "\x50\x06\x80\x09\x00\x00\x00\x01\x00\x00\x00\x00ZABCDEFGHIJKLMNOP"s,
+
+         exception_info(),
+         12,
+         "{ ID=20486, Flags=[RES], OpCode=0, RCode=9, QdCount=0, AnCount=1, NsCount=0, ArCount=0 }",
+
+         /* ID */ 0x5006,
+         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* OpCode */ 0, /* RCode */ 9,
+         /* QdCount */ 0, /* AnCount */ 1, /* NsCount */ 0, /* ArCount */ 0,
+      },
+
+      {
+         TEST_CONTEXT("Load query header with RD"),
+         "\xf9\xac\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00ZABCDEFGHIJKLMNOP"s,
+
+         exception_info(),
+         12,
+         "{ ID=63916, Flags=[QRY,RD], OpCode=0, RCode=0, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
+
+         /* ID */ 0xf9ac,
+         /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ true, /* RA_Flag */ false,
+         /* OpCode */ 0, /* RCode */ 0,
+         /* QdCount */ 1, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 0,
+      },
+
+      {
+         TEST_CONTEXT("Load query header with OpCode"),
+         "\xf9\xac\x78\x00\x00\x01\x00\x00\x00\x00\x00\x00ZABCDEFGHIJKLMNOP"s,
+
+         exception_info(),
+         12,
+         "{ ID=63916, Flags=[QRY], OpCode=15, RCode=0, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
+
+         /* ID */ 0xf9ac,
+         /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* OpCode */ 0xf, /* RCode */ 0,
+         /* QdCount */ 1, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 0,
+      },
+
+      {
+         TEST_CONTEXT("Load response header with AA"),
+         "\x11\x11\x84\x00\x00\x00\x00\x00\x00\x01\x00\x00ZABCDEFGHIJKLMNOP"s,
+
+         exception_info(),
+         12,
+         "{ ID=4369, Flags=[RES,AA], OpCode=0, RCode=0, QdCount=0, AnCount=0, NsCount=1, ArCount=0 }",
+
+         /* ID */ 0x1111,
+         /* QR_Flag */ true, /* AA_Flag */ true, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* OpCode */ 0, /* RCode */ 0,
+         /* QdCount */ 0, /* AnCount */ 0, /* NsCount */ 1, /* ArCount */ 0,
+      },
+
+      {
+         TEST_CONTEXT("Load response header with TC"),
+         "\xFF\xFF\x82\x00\x00\x00\x00\x00\x00\x00\x00\x01ZABCDEFGHIJKLMNOP"s,
+
+         exception_info(),
+         12,
+         "{ ID=65535, Flags=[RES,TC], OpCode=0, RCode=0, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
+
+         /* ID */ 0xFFFF,
+         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ true, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* OpCode */ 0, /* RCode */ 0,
+         /* QdCount */ 0, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 1,
+      },
+
+      {
+         TEST_CONTEXT("Load response header with RA"),
+         "\xFF\xFF\x80\x80\x00\x00\x00\x00\x00\x00\x00\x01ZABCDEFGHIJKLMNOP"s,
+
+         exception_info(),
+         12,
+         "{ ID=65535, Flags=[RES,RA], OpCode=0, RCode=0, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
+
+         /* ID */ 0xFFFF,
+         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ true,
+         /* OpCode */ 0, /* RCode */ 0,
+         /* QdCount */ 0, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 1,
+      },
+   };
+
+   /////////////////////////////////////////////////////
+
+   for(auto Datum : TestData)
+   {
+      BOOST_TEST_CONTEXT(Datum.test_context)
+      {
+         auto pH = make_my_unique<DnsProtocol::Header>(); // TEST OBJECT
+
+         /// Set
+         {
+            pH->ID(0xFFFF);
+            pH->QR_Flag(true);
+            pH->AA_Flag(true);
+            pH->TC_Flag(true);
+            pH->RD_Flag(true);
+            pH->RA_Flag(true);
+
+            pH->OpCode(0xFFFF);
+            pH->RCode(0xFFFF);
+
+            pH->QdCount(0xFFFF);
+            pH->AnCount(0xFFFF);
+            pH->NsCount(0xFFFF);
+            pH->ArCount(0xFFFF);
+         }
+
+         if(Datum.expected_exception)
+         {
+            auto&& b = Datum.input_raw_data.begin();
+            auto&& e = Datum.input_raw_data.end();
+
+            BOOST_CHECK_EXCEPTION(pH->Load(b, e), std::exception, Datum.expected_exception); // THE TEST
+
+            BOOST_CHECK(0 <= std::distance(Datum.input_raw_data.begin(), b) && std::distance(Datum.input_raw_data.begin(), b) <= Datum.expected_distance);
+         }
+         else
+         {
+            auto&& b = Datum.input_raw_data.begin();
+            auto&& e = Datum.input_raw_data.end();
+
+            BOOST_CHECK_NO_THROW(pH->Load(b, e)); // THE TEST
+
+            BOOST_CHECK_EQUAL(std::distance(Datum.input_raw_data.begin(), b), Datum.expected_distance);
+
+            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(OctRep(pH->Save()), OctRep(Datum.input_raw_data.substr(0, Datum.expected_distance))));
+
+            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pH).str(), Datum.expected_stream));
+
+            // More Check
+            {
+               BOOST_CHECK_EQUAL(pH->ID(),      Datum.expected_ID);
+
+               BOOST_CHECK_EQUAL(pH->QR_Flag(), Datum.expected_QR_Flag);
+               BOOST_CHECK_EQUAL(pH->AA_Flag(), Datum.expected_AA_Flag);
+               BOOST_CHECK_EQUAL(pH->TC_Flag(), Datum.expected_TC_Flag);
+               BOOST_CHECK_EQUAL(pH->RD_Flag(), Datum.expected_RD_Flag);
+               BOOST_CHECK_EQUAL(pH->RA_Flag(), Datum.expected_RA_Flag);
+
+               BOOST_CHECK_EQUAL(pH->OpCode(),  Datum.expected_OpCode);
+               BOOST_CHECK_EQUAL(pH->RCode(),   Datum.expected_RCode);
+               BOOST_CHECK_EQUAL(pH->ZCode(),   0);
+
+               BOOST_CHECK_EQUAL(pH->QdCount(), Datum.expected_QdCount);
+               BOOST_CHECK_EQUAL(pH->AnCount(), Datum.expected_AnCount);
+               BOOST_CHECK_EQUAL(pH->NsCount(), Datum.expected_NsCount);
+               BOOST_CHECK_EQUAL(pH->ArCount(), Datum.expected_ArCount);
+            }
+         }
+      }
+   }
+}
+
+
 BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Save)
 {
    struct
    {
       std::string test_context;
-      std::string name_to_set;
+      std::string input_name;
 
       exception_info_t expected_exception;
       std::string expected_name;
@@ -449,7 +700,7 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Save)
 
          if(Datum.expected_exception)
          {
-            BOOST_CHECK_EXCEPTION(pQN->Set(Datum.name_to_set), std::exception, Datum.expected_exception);   // THE TEST
+            BOOST_CHECK_EXCEPTION(pQN->Set(Datum.input_name), std::exception, Datum.expected_exception);   // THE TEST
 
             BOOST_CHECK_EQUAL(pQN->Get(), initial_name);
 
@@ -459,7 +710,7 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Save)
          }
          else
          {
-            BOOST_CHECK_NO_THROW(pQN->Set(Datum.name_to_set));   // THE TEST
+            BOOST_CHECK_NO_THROW(pQN->Set(Datum.input_name));   // THE TEST
 
             BOOST_CHECK_EQUAL(pQN->Get(), Datum.expected_name);
 
@@ -479,7 +730,7 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Load)
    struct
    {
       std::string test_context;
-      std::string raw_data;
+      std::string input_raw_data;
 
       exception_info_t expected_exception;
       std::string expected_name;
@@ -588,18 +839,18 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Load)
          std::string initial_raw_data = "\3www\7initial\3com\0"s;
          std::string initial_name     = "www.initial.com"s;
 
-         BOOST_REQUIRE(initial_raw_data != Datum.raw_data);
+         BOOST_REQUIRE(initial_raw_data != Datum.input_raw_data);
 
          pQN->Set(initial_name); // set the object to some initial state
 
          if(Datum.expected_exception)
          {
-            auto&& b = Datum.raw_data.begin();
-            auto&& e = Datum.raw_data.end();
+            auto&& b = Datum.input_raw_data.begin();
+            auto&& e = Datum.input_raw_data.end();
 
             BOOST_CHECK_EXCEPTION(pQN->Load(b, e), std::exception, Datum.expected_exception); // THE TEST
 
-            BOOST_CHECK(0 <= std::distance(Datum.raw_data.begin(), b) && std::distance(Datum.raw_data.begin(), b) <= Datum.expected_distance);
+            BOOST_CHECK(0 <= std::distance(Datum.input_raw_data.begin(), b) && std::distance(Datum.input_raw_data.begin(), b) <= Datum.expected_distance);
 
             BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(pQN->Get(), initial_name));
 
@@ -609,56 +860,121 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Load)
          }
          else
          {
-            auto&& b = Datum.raw_data.begin();
-            auto&& e = Datum.raw_data.end();
+            auto&& b = Datum.input_raw_data.begin();
+            auto&& e = Datum.input_raw_data.end();
 
             BOOST_CHECK_NO_THROW(pQN->Load(b, e)); // THE TEST
 
-            BOOST_CHECK_EQUAL(std::distance(Datum.raw_data.begin(), b), Datum.expected_distance);
+            BOOST_CHECK_EQUAL(std::distance(Datum.input_raw_data.begin(), b), Datum.expected_distance);
 
             BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(pQN->Get(), Datum.expected_name));
 
             BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), Datum.expected_name));
 
-            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(OctRep(pQN->Save()), OctRep(Datum.raw_data.substr(0, Datum.expected_distance))));
+            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(OctRep(pQN->Save()), OctRep(Datum.input_raw_data.substr(0, Datum.expected_distance))));
          }
       }
    }
 }
 
 
-BOOST_AUTO_TEST_CASE(DnsProtocol_Question)
+BOOST_AUTO_TEST_CASE(DnsProtocol_Question_Save)
 {
+   struct
    {
-      auto pQ = make_my_unique<DnsProtocol::Question>();
+      std::string test_context;
 
-      pQ->QName("yahoo.com");
-      pQ->QType(15);
-      pQ->QClass(1);
+      std::string input_QName;
+      uint16_t input_QType;
+      uint16_t input_QClass;
 
-      BOOST_CHECK_EQUAL(pQ->QName(), "yahoo.com");
-      BOOST_CHECK_EQUAL(pQ->QType(), 15);
-      BOOST_CHECK_EQUAL(pQ->QClass(), 1);
-
-      std::string req = "\5yahoo\3com\x00\x00\x0f\x00\x01"s;
-      req.resize(15);
-
-      auto&& wd = pQ->Save();
-
-      BOOST_CHECK_EQUAL(OctRep(wd), OctRep(req));
+      exception_info_t expected_exception;
+      std::string expected_raw_data;
+      std::string expected_stream;
    }
-
-   // Load
+   TestData[] =
    {
-      std::string res = "\5yahoo\3com\x00\x00\x0f\x00\x01"s;
-      auto&& begin = res.cbegin();
+      {
+         TEST_CONTEXT("simple case"),
+         "www.yahoo.com", 0xA, 0xB,
 
-      auto pQ = make_my_unique<DnsProtocol::Question>();
+         exception_info(),
+         "\3www\5yahoo\3com\0\0\xA\0\xB"s,
+         "{ QName=www.yahoo.com, QType=10, QClass=11 }",
+      },
+   };
 
-      pQ->Load(begin, res.cend());
+   /////////////////////////////////////////////////////
 
-      BOOST_CHECK_EQUAL(pQ->QName(), "yahoo.com");
-      BOOST_CHECK_EQUAL(pQ->QType(), 15);
-      BOOST_CHECK_EQUAL(pQ->QClass(), 1);
+   for(auto Datum : TestData)
+   {
+      BOOST_TEST_CONTEXT(Datum.test_context)
+      {
+         auto pQ = make_my_unique<DnsProtocol::Question>(); // TEST OBJECT
+
+         pQ->QName(Datum.input_QName);
+         pQ->QType(Datum.input_QType);
+         pQ->QClass(Datum.input_QClass);
+
+         BOOST_CHECK_EQUAL(pQ->QName(), Datum.input_QName);
+         BOOST_CHECK_EQUAL(pQ->QType(), Datum.input_QType);
+         BOOST_CHECK_EQUAL(pQ->QClass(), Datum.input_QClass);
+
+         BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQ).str(), Datum.expected_stream);
+
+         BOOST_CHECK_EQUAL(OctRep(pQ->Save()), OctRep(Datum.expected_raw_data));
+      }
+   }
+}
+
+
+BOOST_AUTO_TEST_CASE(DnsProtocol_Question_Load)
+{
+   struct
+   {
+      std::string test_context;
+
+      std::string input_raw_data;
+
+      int expected_distance;
+      std::string expected_QName;
+      uint16_t expected_QType;
+      uint16_t expected_QClass;
+      std::string expected_stream;
+   }
+   TestData[] =
+   {
+      {
+         TEST_CONTEXT("Load simple case (with excess data)"),
+         "\3www\5yahoo\3com\0\0\xA\0\xBZABCDEFGHIJ"s,
+
+         19,
+         "www.yahoo.com", 0xA, 0xB,
+
+         "{ QName=www.yahoo.com, QType=10, QClass=11 }",
+      },
+   };
+
+   /////////////////////////////////////////////////////
+
+   for(auto Datum : TestData)
+   {
+      BOOST_TEST_CONTEXT(Datum.test_context)
+      {
+         auto pQ = make_my_unique<DnsProtocol::Question>(); // TEST OBJECT
+
+         auto&& b = Datum.input_raw_data.begin();
+         auto&& e = Datum.input_raw_data.end();
+
+         BOOST_CHECK_NO_THROW( pQ->Load(b, e) ); // THE TEST
+
+         BOOST_CHECK_EQUAL(pQ->QName(), Datum.expected_QName);
+         BOOST_CHECK_EQUAL(pQ->QType(), Datum.expected_QType);
+         BOOST_CHECK_EQUAL(pQ->QClass(), Datum.expected_QClass);
+
+         BOOST_CHECK_EQUAL(std::distance(Datum.input_raw_data.begin(), b), Datum.expected_distance);
+         BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQ).str(), Datum.expected_stream);
+         BOOST_CHECK_EQUAL(OctRep(pQ->Save()), OctRep(Datum.input_raw_data.substr(0, Datum.expected_distance)));
+      }
    }
 }
