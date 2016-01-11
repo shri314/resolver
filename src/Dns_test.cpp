@@ -128,6 +128,15 @@ struct exception_info_t
             BOOST_CHECK_EQUAL(f->code(), code);
             return true;
          }
+
+         if(auto f = dynamic_cast<const DnsProtocol::bad_ptr_offset*>(&e))
+         {
+            BOOST_CHECK_EQUAL(f->code(), code);
+            return true;
+         }
+
+         BOOST_TEST(false, "unexpected exception");
+         return false;
       }
 };
 
@@ -144,7 +153,7 @@ exception_info_t exception_info()
 }
 
 
-BOOST_AUTO_TEST_CASE(DnsProtocol_Header_Save)
+BOOST_AUTO_TEST_CASE(DnsProtocol_Header_t_Save)
 {
    struct
    {
@@ -274,7 +283,7 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Header_Save)
    {
       BOOST_TEST_CONTEXT(Datum.test_context)
       {
-         auto pH = make_my_unique<DnsProtocol::Header>(); // TEST OBJECT
+         auto pH = make_my_unique<DnsProtocol::Header_t>(); // TEST OBJECT
 
          /// Set
          {
@@ -324,7 +333,7 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Header_Save)
 }
 
 
-BOOST_AUTO_TEST_CASE(DnsProtocol_Header_Load)
+BOOST_AUTO_TEST_CASE(DnsProtocol_Header_t_Load)
 {
    struct
    {
@@ -512,7 +521,7 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Header_Load)
    {
       BOOST_TEST_CONTEXT(Datum.test_context)
       {
-         auto pH = make_my_unique<DnsProtocol::Header>(); // TEST OBJECT
+         auto pH = make_my_unique<DnsProtocol::Header_t>(); // TEST OBJECT
 
          /// Set
          {
@@ -579,15 +588,76 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Header_Load)
 }
 
 
-BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Save)
+BOOST_AUTO_TEST_CASE(DnsProtocol_LabelList_t_Get)
+{
+   BOOST_TEST_CONTEXT("Get (without start_offset)")
+   {
+      auto pQN = make_my_unique<DnsProtocol::LabelList_t>(); // TEST OBJECT
+
+      pQN->Set("www.yahoo.com");
+
+      auto&& res = pQN->Get();
+
+      BOOST_CHECK_EQUAL(res.first, "www.yahoo.com");
+      BOOST_CHECK_EQUAL(res.second, 0);
+
+      BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), "[www.yahoo.com]"));
+   }
+
+   BOOST_TEST_CONTEXT("Get with ptr_offset (without start_offset)")
+   {
+      auto pQN = make_my_unique<DnsProtocol::LabelList_t>(); // TEST OBJECT
+
+      pQN->Set("www.yahoo.com", 45);
+
+      auto&& res = pQN->Get();
+
+      BOOST_CHECK_EQUAL(res.first, "www.yahoo.com");
+      BOOST_CHECK_EQUAL(res.second, 45);
+
+      BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), "[www.yahoo.com]->[45]"));
+   }
+
+   BOOST_TEST_CONTEXT("Get with start_offset")
+   {
+      auto pQN = make_my_unique<DnsProtocol::LabelList_t>(); // TEST OBJECT
+
+      pQN->Set("www.yahoo.com");
+
+      auto&& res = pQN->Get(4);
+
+      BOOST_CHECK_EQUAL(res.first, "yahoo.com");
+      BOOST_CHECK_EQUAL(res.second, 0);
+
+      BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), "[www.yahoo.com]"));
+   }
+
+   BOOST_TEST_CONTEXT("Get with start_offset + ptr_offset")
+   {
+      auto pQN = make_my_unique<DnsProtocol::LabelList_t>(); // TEST OBJECT
+
+      pQN->Set("www.yahoo.com", 45);
+
+      auto&& res = pQN->Get(4);
+
+      BOOST_CHECK_EQUAL(res.first, "yahoo.com");
+      BOOST_CHECK_EQUAL(res.second, 45);
+
+      BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), "[www.yahoo.com]->[45]"));
+   }
+}
+
+BOOST_AUTO_TEST_CASE(DnsProtocol_LabelList_t_Save)
 {
    struct
    {
       std::string test_context;
       std::string input_name;
+      uint16_t input_ptr_offset;
 
       exception_info_t expected_exception;
       std::string expected_name;
+      std::string expected_stream;
       std::string expected_raw_data;
    }
    TestData[] =
@@ -595,35 +665,98 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Save)
       {
          TEST_CONTEXT("empty"),
          "",
+         0,
 
          exception_info(),
          "",
+         "[]",
          "\0"s,
+      },
+
+      {
+         TEST_CONTEXT("empty + ptr_offset"),
+         "",
+         45,
+
+         exception_info(),
+         "",
+         "[]->[45]",
+         "\300\55"s,
+      },
+
+      {
+         TEST_CONTEXT("empty + ptr_offset which fits"),
+         "",
+         16383,
+
+         exception_info(),
+         "",
+         "[]->[16383]",
+         "\xFF\xFF"s,
       },
 
       {
          TEST_CONTEXT("simple case"),
          "www.yahoo.com",
+         0,
 
          exception_info(),
          "www.yahoo.com",
+         "[www.yahoo.com]",
          "\3www\5yahoo\3com\0"s,
+      },
+
+      {
+         TEST_CONTEXT("simple case + ptr_offset"),
+         "www.yahoo.com",
+         45,
+
+         exception_info(),
+         "www.yahoo.com",
+         "[www.yahoo.com]->[45]",
+         "\3www\5yahoo\3com\300\55"s,
       },
 
       {
          TEST_CONTEXT("with single ending dot"),
          "www.yahoo.com.",
+         0,
 
          exception_info(),
          "www.yahoo.com",
+         "[www.yahoo.com]",
          "\3www\5yahoo\3com\0"s,
+      },
+
+      {
+         TEST_CONTEXT("with single ending dot + ptr_offset"),
+         "www.yahoo.com.",
+         45,
+
+         exception_info(),
+         "www.yahoo.com",
+         "[www.yahoo.com]->[45]",
+         "\3www\5yahoo\3com\300\55"s,
+      },
+
+      {
+         TEST_CONTEXT("bad ptr_offset"),
+         "www.yahoo.com",
+         16384,
+
+         exception_info<DnsProtocol::bad_ptr_offset>("offset too long"s, 1),
+         "",
+         "",
+         "",
       },
 
       {
          TEST_CONTEXT("with extra ending dots"),
          "www.yahoo.com..",
+         0,
 
          exception_info<DnsProtocol::bad_name>("wrong format"s, 1),
+         "",
          "",
          "",
       },
@@ -631,8 +764,10 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Save)
       {
          TEST_CONTEXT("with extra dots"),
          "www.yahoo..com",
+         0,
 
          exception_info<DnsProtocol::bad_name>("wrong format"s, 1),
+         "",
          "",
          "",
       },
@@ -640,35 +775,65 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Save)
       {
          TEST_CONTEXT("below 63 label limit"),
          std::string(63, 'w') + ".com",
+         0,
 
          exception_info(),
          std::string(63, 'w') + ".com",
+         "[" + std::string(63, 'w') + ".com" + "]",
          "\77"s + std::string(63, 'w') + "\3com\0"s,
+      },
+
+      {
+         TEST_CONTEXT("below 63 label limit + ptr_offset"),
+         std::string(63, 'w') + ".com",
+         45,
+
+         exception_info(),
+         std::string(63, 'w') + ".com",
+         "[" + std::string(63, 'w') + ".com" + "]->[45]",
+         "\77"s + std::string(63, 'w') + "\3com\300\55"s,
       },
 
       {
          TEST_CONTEXT("beyond 63 label limit"),
          std::string(63, 'w') + "X.com",
+         0,
 
          exception_info<DnsProtocol::bad_name>("length too long"s, 1),
          "",
-         ""
+         "",
+         "",
       },
 
       {
          TEST_CONTEXT("below 255 limit"),
          std::string(077, 'w') + '.' + std::string(077, 'a') + '.' + std::string(077, 'b') + '.' + std::string(075, 'c'),
+         0,
 
          exception_info(),
          std::string(077, 'w') + '.' + std::string(077, 'a') + '.' + std::string(077, 'b') + '.' + std::string(075, 'c'),
+         "[" + std::string(077, 'w') + '.' + std::string(077, 'a') + '.' + std::string(077, 'b') + '.' + std::string(075, 'c') + "]",
          "\77"s + std::string(077, 'w') + "\077"s + std::string(077, 'a') + "\077"s + std::string(077, 'b') + "\075"s + std::string(075, 'c') + "\0"s,
+      },
+
+      {
+         TEST_CONTEXT("below 255 limit + ptr_offset"),
+         std::string(077, 'w') + '.' + std::string(077, 'a') + '.' + std::string(077, 'b') + '.' + std::string(074, 'c'),
+         45,
+
+         exception_info(),
+         std::string(077, 'w') + '.' + std::string(077, 'a') + '.' + std::string(077, 'b') + '.' + std::string(074, 'c'),
+         "[" + std::string(077, 'w') + '.' + std::string(077, 'a') + '.' + std::string(077, 'b') + '.' + std::string(074, 'c') + "]->[45]",
+         "\77"s + std::string(077, 'w') + "\077"s + std::string(077, 'a') + "\077"s + std::string(077, 'b') + "\074"s + std::string(074, 'c') + "\300\55"s,
       },
 
       {
          TEST_CONTEXT("beyond 255 limit (no room for chars)"),
          std::string(077, 'w') + '.' + std::string(077, 'a') + '.' + std::string(077, 'b') + '.' + std::string(070, 'c') + '.' + std::string(06, 'd'),
+         0,
 
          exception_info<DnsProtocol::bad_name>("length too long"s, 2),
+         "",
          "",
          "",
       },
@@ -676,8 +841,21 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Save)
       {
          TEST_CONTEXT("beyond 255 limit (no room for internal \\0)"),
          std::string(077, 'w') + '.' + std::string(077, 'a') + '.' + std::string(077, 'b') + '.' + std::string(075, 'c') + 'X',
+         0,
 
          exception_info<DnsProtocol::bad_name>("length too long"s, 3),
+         "",
+         "",
+         "",
+      },
+
+      {
+         TEST_CONTEXT("beyond 255 limit (no room for internal ptr_offset)"),
+         std::string(077, 'w') + '.' + std::string(077, 'a') + '.' + std::string(077, 'b') + '.' + std::string(074, 'c') + 'X',
+         45,
+
+         exception_info<DnsProtocol::bad_name>("length too long"s, 3),
+         "",
          "",
          "",
       },
@@ -689,9 +867,10 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Save)
    {
       BOOST_TEST_CONTEXT(Datum.test_context)
       {
-         auto pQN = make_my_unique<DnsProtocol::QualifiedName>(); // TEST OBJECT
+         auto pQN = make_my_unique<DnsProtocol::LabelList_t>(); // TEST OBJECT
 
          std::string initial_name     = "www.initial.com"s;
+         std::string initial_stream   = "[www.initial.com]"s;
          std::string initial_raw_data = "\3www\7initial\3com\0"s;
 
          BOOST_REQUIRE(initial_name != Datum.expected_name);
@@ -700,21 +879,27 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Save)
 
          if(Datum.expected_exception)
          {
-            BOOST_CHECK_EXCEPTION(pQN->Set(Datum.input_name), std::exception, Datum.expected_exception);   // THE TEST
+            BOOST_CHECK_EXCEPTION(pQN->Set(Datum.input_name, Datum.input_ptr_offset), std::exception, Datum.expected_exception);   // THE TEST
 
-            BOOST_CHECK_EQUAL(pQN->Get(), initial_name);
+            auto&& res = pQN->Get();
 
-            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), initial_name));
+            BOOST_CHECK_EQUAL(res.first, initial_name);
+            BOOST_CHECK_EQUAL(res.second, 0);
+
+            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), initial_stream));
 
             BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(OctRep(pQN->Save()), OctRep(initial_raw_data)));
          }
          else
          {
-            BOOST_CHECK_NO_THROW(pQN->Set(Datum.input_name));   // THE TEST
+            BOOST_CHECK_NO_THROW(pQN->Set(Datum.input_name, Datum.input_ptr_offset));   // THE TEST
 
-            BOOST_CHECK_EQUAL(pQN->Get(), Datum.expected_name);
+            auto&& res = pQN->Get();
 
-            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), Datum.expected_name));
+            BOOST_CHECK_EQUAL(res.first, Datum.expected_name);
+            BOOST_CHECK_EQUAL(res.second, Datum.input_ptr_offset);
+
+            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), Datum.expected_stream));
 
             BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(OctRep(pQN->Save()), OctRep(Datum.expected_raw_data)));
          }
@@ -723,7 +908,7 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Save)
 }
 
 
-BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Load)
+BOOST_AUTO_TEST_CASE(DnsProtocol_LabelList_t_Load)
 {
    // std::cout << getpid() << "\n"; sleep(15);
 
@@ -734,6 +919,8 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Load)
 
       exception_info_t expected_exception;
       std::string expected_name;
+      uint16_t expected_ptr_offset;
+      std::string expected_stream;
       int expected_distance;
    }
    TestData[] =
@@ -744,7 +931,20 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Load)
 
          exception_info(),
          "",
+         0,
+         "[]",
          1,
+      },
+
+      {
+         TEST_CONTEXT("empty + ptr_offset"),
+         "\300\55"s,
+
+         exception_info(),
+         "",
+         45,
+         "[]->[45]",
+         2,
       },
 
       {
@@ -753,7 +953,20 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Load)
 
          exception_info(),
          "www.yahoo.com",
+         0,
+         "[www.yahoo.com]",
          15,
+      },
+
+      {
+         TEST_CONTEXT("simple case + ptr_offset"),
+         "\3www\5yahoo\3com\300\55"s,
+
+         exception_info(),
+         "www.yahoo.com",
+         45,
+         "[www.yahoo.com]->[45]",
+         16,
       },
 
       {
@@ -762,7 +975,20 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Load)
 
          exception_info(),
          "www.yahoo.com",
+         0,
+         "[www.yahoo.com]",
          15,
+      },
+
+      {
+         TEST_CONTEXT("consumption not beyond ptr_offset"),
+         "\3www\5yahoo\3com\300\55ZBCDEFGHIJKLMNOPQRSTUVWXYZ"s,
+
+         exception_info(),
+         "www.yahoo.com",
+         45,
+         "[www.yahoo.com]->[45]",
+         16,
       },
 
       {
@@ -776,6 +1002,28 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Load)
          std::string(077, 'w') + '.' +
          std::string(077, 'a') + '.' +
          std::string(077, 'b') + '.' + std::string(075, 'c'),
+         0,
+         "[" + std::string(077, 'w') + '.' +
+         std::string(077, 'a') + '.' +
+         std::string(077, 'b') + '.' + std::string(075, 'c') + "]",
+         255,
+      },
+
+      {
+         TEST_CONTEXT("within exactly supported length of 255 + ptr_offset"),
+         "\77"s + std::string(077, 'w') +
+         "\77"s + std::string(077, 'a') +
+         "\77"s + std::string(077, 'b') +
+         "\74"s + std::string(074, 'c') + "\300\55ZABCD"s,
+
+         exception_info(),
+         std::string(077, 'w') + '.' +
+         std::string(077, 'a') + '.' +
+         std::string(077, 'b') + '.' + std::string(074, 'c'),
+         45,
+         "[" + std::string(077, 'w') + '.' +
+         std::string(077, 'a') + '.' +
+         std::string(077, 'b') + '.' + std::string(074, 'c') + "]->[45]",
          255,
       },
 
@@ -788,6 +1036,22 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Load)
 
          exception_info<DnsProtocol::bad_data_stream>("length too long"s, 1),
          "",
+         0,
+         "",
+         255,
+      },
+
+      {
+         TEST_CONTEXT("bad length in data > 255 (with ptr_offset)"),
+         "\77"s + std::string(077, 'w') +
+         "\77"s + std::string(077, 'a') +
+         "\77"s + std::string(077, 'b') +
+         "\75"s + std::string(075, 'c') + "\300\55ABCD"s,
+
+         exception_info<DnsProtocol::bad_data_stream>("length too long"s, 1),
+         "",
+         0,
+         "",
          255,
       },
 
@@ -798,6 +1062,8 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Load)
          exception_info<DnsProtocol::bad_data_stream>("length too long"s, 2),
          "",
          0,
+         "",
+         0,
       },
 
       {
@@ -805,6 +1071,8 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Load)
          "\3www\100yahoo\3com\0ABCD"s,
 
          exception_info<DnsProtocol::bad_data_stream>("length too long"s, 2),
+         "",
+         0,
          "",
          4,
       },
@@ -814,6 +1082,8 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Load)
          "\3www\5ya"s,
          exception_info<DnsProtocol::bad_data_stream>("truncated"s, 2),
          "",
+         0,
+         "",
          7,
       },
 
@@ -822,7 +1092,19 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Load)
          "\3www\5yahoo\3com"s,
          exception_info<DnsProtocol::bad_data_stream>("truncated"s, 2),
          "",
+         0,
+         "",
          14,
+      },
+
+      {
+         TEST_CONTEXT("truncated data (missing ptr_offset)"),
+         "\3www\5yahoo\3com\301"s,
+         exception_info<DnsProtocol::bad_data_stream>("truncated"s, 2),
+         "",
+         0,
+         "",
+         15,
       },
 
    };
@@ -834,10 +1116,11 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Load)
       BOOST_TEST_CONTEXT(Datum.test_context)
       {
          // Check sane test configuration
-         auto pQN = make_my_unique<DnsProtocol::QualifiedName>(); // TEST OBJECT
+         auto pQN = make_my_unique<DnsProtocol::LabelList_t>(); // TEST OBJECT
 
          std::string initial_raw_data = "\3www\7initial\3com\0"s;
          std::string initial_name     = "www.initial.com"s;
+         std::string initial_stream   = "[www.initial.com]"s;
 
          BOOST_REQUIRE(initial_raw_data != Datum.input_raw_data);
 
@@ -852,9 +1135,13 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Load)
 
             BOOST_CHECK(0 <= std::distance(Datum.input_raw_data.begin(), b) && std::distance(Datum.input_raw_data.begin(), b) <= Datum.expected_distance);
 
-            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(pQN->Get(), initial_name));
+            decltype(pQN->Get()) res;
+            BOOST_CHECK_NO_THROW(res = pQN->Get());
 
-            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), initial_name));
+            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(res.first, initial_name));
+            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(res.second, 0));
+
+            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), initial_stream));
 
             BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(OctRep(pQN->Save()), OctRep(initial_raw_data)));
          }
@@ -867,9 +1154,13 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Load)
 
             BOOST_CHECK_EQUAL(std::distance(Datum.input_raw_data.begin(), b), Datum.expected_distance);
 
-            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(pQN->Get(), Datum.expected_name));
+            decltype(pQN->Get()) res;
+            BOOST_CHECK_NO_THROW(res = pQN->Get());
 
-            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), Datum.expected_name));
+            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(res.first, Datum.expected_name));
+            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(res.second, Datum.expected_ptr_offset));
+
+            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), Datum.expected_stream));
 
             BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(OctRep(pQN->Save()), OctRep(Datum.input_raw_data.substr(0, Datum.expected_distance))));
          }
@@ -878,7 +1169,7 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_QualifiedName_Load)
 }
 
 
-BOOST_AUTO_TEST_CASE(DnsProtocol_Question_Save)
+BOOST_AUTO_TEST_CASE(DnsProtocol_Question_t_Save)
 {
    struct
    {
@@ -900,7 +1191,7 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Question_Save)
 
          exception_info(),
          "\3www\5yahoo\3com\0\0\xA\0\xB"s,
-         "{ QName=www.yahoo.com, QType=10, QClass=11 }",
+         "{ QName=[www.yahoo.com], QType=10, QClass=11 }",
       },
    };
 
@@ -910,13 +1201,14 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Question_Save)
    {
       BOOST_TEST_CONTEXT(Datum.test_context)
       {
-         auto pQ = make_my_unique<DnsProtocol::Question>(); // TEST OBJECT
+         auto pQ = make_my_unique<DnsProtocol::Question_t>(); // TEST OBJECT
 
          pQ->QName(Datum.input_QName);
          pQ->QType(Datum.input_QType);
          pQ->QClass(Datum.input_QClass);
 
-         BOOST_CHECK_EQUAL(pQ->QName(), Datum.input_QName);
+         BOOST_CHECK_EQUAL(pQ->QName().first, Datum.input_QName);
+         BOOST_CHECK_EQUAL(pQ->QName().second, 0);
          BOOST_CHECK_EQUAL(pQ->QType(), Datum.input_QType);
          BOOST_CHECK_EQUAL(pQ->QClass(), Datum.input_QClass);
 
@@ -928,7 +1220,7 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Question_Save)
 }
 
 
-BOOST_AUTO_TEST_CASE(DnsProtocol_Question_Load)
+BOOST_AUTO_TEST_CASE(DnsProtocol_Question_t_Load)
 {
    struct
    {
@@ -951,7 +1243,7 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Question_Load)
          19,
          "www.yahoo.com", 0xA, 0xB,
 
-         "{ QName=www.yahoo.com, QType=10, QClass=11 }",
+         "{ QName=[www.yahoo.com], QType=10, QClass=11 }",
       },
    };
 
@@ -961,14 +1253,15 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Question_Load)
    {
       BOOST_TEST_CONTEXT(Datum.test_context)
       {
-         auto pQ = make_my_unique<DnsProtocol::Question>(); // TEST OBJECT
+         auto pQ = make_my_unique<DnsProtocol::Question_t>(); // TEST OBJECT
 
          auto&& b = Datum.input_raw_data.begin();
          auto&& e = Datum.input_raw_data.end();
 
-         BOOST_CHECK_NO_THROW( pQ->Load(b, e) ); // THE TEST
+         BOOST_CHECK_NO_THROW(pQ->Load(b, e));   // THE TEST
 
-         BOOST_CHECK_EQUAL(pQ->QName(), Datum.expected_QName);
+         BOOST_CHECK_EQUAL(pQ->QName().first, Datum.expected_QName);
+         BOOST_CHECK_EQUAL(pQ->QName().second, 0);
          BOOST_CHECK_EQUAL(pQ->QType(), Datum.expected_QType);
          BOOST_CHECK_EQUAL(pQ->QClass(), Datum.expected_QClass);
 

@@ -42,7 +42,7 @@ int main(int argc, char** argv)
    io_service.run();
 
 
-   DnsProtocol::QualifiedName qn;
+   DnsProtocol::LabelList_t qn;
    
    qn.Set("www.yahoo.com");
 
