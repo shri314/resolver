@@ -296,6 +296,11 @@ namespace DnsProtocol
             return *this;
          }
 
+         uint16_t Size() const
+         {
+            return m_store.size();
+         }
+
          uint16_t ArCount() const
          {
             return (uint16_t(m_store[10]) << 8)
@@ -583,6 +588,11 @@ namespace DnsProtocol
             return os;
          }
 
+         uint16_t Size() const
+         {
+            return m_store.size();
+         }
+
       private:
          std::vector<uint8_t> m_store;
    };
@@ -669,6 +679,11 @@ namespace DnsProtocol
          friend std::ostream& operator<<(std::ostream& os, const Question_t& rhs)
          {
             return os << "{ QName=" << rhs.m_qname << ", QType=" << rhs.QType() << ", QClass=" << rhs.QClass() << " }";
+         }
+
+         uint16_t Size() const
+         {
+            return m_qname.Size() + m_store.size();
          }
 
       private:
@@ -812,6 +827,11 @@ namespace DnsProtocol
             return os << "{ RRName=" << rhs.m_rrname << ", Type=" << rhs.Type() << ", Class=" << rhs.Class() << ", TTL=" << rhs.TTL() << ", RDLength=" << rhs.RDLength() << " }";
          }
 
+         uint16_t Size() const
+         {
+            return m_rrname.Size() + m_store.size() + m_rdata.size();
+         }
+
       private:
          ResourceRecord_t& RDLength(uint16_t v)
          {
@@ -830,6 +850,15 @@ namespace DnsProtocol
    struct Dns_t
    {
       public:
+         Dns_t()
+         {
+         }
+
+         const Header_t& Header() const
+         {
+            return m_Header;
+         }
+
          Header_t& Header()
          {
             return m_Header;
@@ -862,6 +891,41 @@ namespace DnsProtocol
 
             return m_Additional.at(x);
          }
+
+         uint16_t Size() const
+         {
+            uint16_t sz = m_Header.Size();
+            for(auto&& qn : m_Question)   sz += qn.Size();
+            for(auto&& an : m_Answer)     sz += an.Size();
+            for(auto&& au : m_Authority)  sz += au.Size();
+            for(auto&& ad : m_Additional) sz += ad.Size();
+
+            return sz;
+         }
+
+      private:
+         /*
+         uint16_t FindOffset(const std::string& label)
+         {
+            uint16_t finalOffset = m_Header.Size();
+
+            for(auto&& qn : m_Question)
+            {
+               uint16_t off = qn.OffsetOf(label);
+
+               if(off != -1)
+               {
+                  return finalOffset + off;
+               }
+               else
+               {
+                  finalOffset += m_Question.Size();
+               }
+            }
+
+            return 0; // anything less then 12 can't be a valid offset
+         }
+         */
 
       private:
          Header_t m_Header;
