@@ -381,12 +381,24 @@ namespace DnsProtocol
          std::array<uint8_t, 12> m_store;
    };
 
+   struct PtrOffset2LabelInverter_t
+   {
+      virtual std::string operator()(uint16_t ptr_offset) = 0;
+      virtual ptr_offset operator()(const std::string& name) = 0;
+   };
+
    struct LabelList_t
    {
       public:
          LabelList_t()
          {
             Set(std::string());
+         }
+
+         LabelList_t(const PtrOffset2LabelInverter_t& PO2LInvt)
+            : m_PO2LInvt(PO2LInvt)
+         {
+            Set(std::string())
          }
 
          template<class Iter>
@@ -514,6 +526,13 @@ namespace DnsProtocol
             return *this;
          }
 
+         std::string Get1(uint16_t start_offset = 0) const
+         {
+            auto&& xx = Get(start_offset);
+
+            return xx.first + m_PO2LInvt(xx.second);
+         }
+
          std::pair<std::string, uint16_t> Get(uint16_t start_offset = 0) const
          {
             std::string str;
@@ -595,12 +614,18 @@ namespace DnsProtocol
 
       private:
          std::vector<uint8_t> m_store;
+         PtrOffset2LabelInverter_t m_PO2LInvt;
    };
 
    struct Question_t
    {
       public:
          Question_t()
+         {
+         }
+
+         Question_t(const PtrOffset2LabelInverter_t& PO2LInvt)
+            : m_qname(PO2LInvt)
          {
          }
 
@@ -695,6 +720,11 @@ namespace DnsProtocol
    {
       public:
          ResourceRecord_t()
+         {
+         }
+
+         ResourceRecord_t(const PtrOffset2LabelInverter_t& PO2LInvt)
+            : m_rrname(PO2LInvt)
          {
          }
 
@@ -927,12 +957,53 @@ namespace DnsProtocol
          }
          */
 
+         uint16_t FindOffset(const std::string& label)
+         {
+            uint16_t finalOffset = m_Header.Size();
+
+            for(auto&& qn : m_Question)
+            {
+               uint16_t off = qn.OffsetOf(label);
+
+               if(off != -1)
+               {
+                  return finalOffset + off;
+               }
+               else
+               {
+                  finalOffset += m_Question.Size();
+               }
+            }
+
+            return 0; // anything less then 12 can't be a valid offset
+         }
+
       private:
+         struct PO2LInvt_t : PtrOffset2LabelInverter_t
+         {
+            PO2LInvt_t(Dns_t* that)
+               : m_DNS(that)
+            {
+            }
+
+            std::string operator()(uint16_t ptr_offset) override
+            {
+               return m_DNS->LabelAt(ptr_offset);
+            }
+
+            ptr_offset operator()(const std::string& name) override
+            {
+               return m_DNS->OffsetFor(ptr_offset);
+            }
+         };
+
          Header_t m_Header;
          std::vector<Question_t> m_Question;
          std::vector<ResourceRecord_t> m_Answer;
          std::vector<ResourceRecord_t> m_Authority;
          std::vector<ResourceRecord_t> m_Additional;
+
+         std::vector<LabelList_t> m_OtherLabels;
    };
 };
 
