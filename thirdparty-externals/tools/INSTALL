@@ -1,0 +1,60 @@
+#!/bin/bash
+
+SCRIPT_DIR=$(CDPATH= cd "$(dirname "$BASH_SOURCE")" && pwd);
+
+source "$SCRIPT_DIR/../../.env"
+
+[ ! -d "${DEV_PREFIX}" ] && mkdir "${DEV_PREFIX}"
+
+sudo bash -s <<EEOM
+echo "${DEV_PREFIX}" > /etc/ld.so.conf.d/g.conf
+EEOM
+
+(
+   wget http://ftp.gnu.org/gnu/gmp/gmp-6.0.0a.tar.bz2
+   tar xjf gmp-6.0.0a.tar.bz2
+   cd gmp-6.0.0
+   ./configure --prefix=$DEV_PREFIX/gcc-deps/
+   make -j10
+   make install
+)
+
+sudo ldconfig -v
+
+(
+   wget http://ftp.gnu.org/gnu/mpfr/mpfr-3.1.3.tar.bz2
+   tar xjf mpfr-3.1.3.tar.bz2
+   cd mpfr-3.1.3
+   ./configure --prefix=$DEV_PREFIX/gcc-deps/ --with-gmp=$DEV_PREFIX/gcc-deps/
+   make -j10
+   make install
+)
+
+sudo ldconfig -v
+
+(
+   wget http://ftp.gnu.org/gnu/mpc/mpc-1.0.3.tar.gz
+   tar xzf mpc-1.0.3.tar.gz
+   cd mpc-1.0.3
+   ./configure --prefix=$DEV_PREFIX/gcc-deps/ --with-gmp=$DEV_PREFIX/gcc-deps/ --with-mpfr=$DEV_PREFIX/gcc-deps/
+   make -j10
+   make install
+)
+
+sudo ldconfig -v
+
+(
+   wget http://ftp.gnu.org/gnu/gcc/gcc-5.2.0/gcc-5.2.0.tar.bz2
+   tar xjf gcc-5.2.0.tar.bz2
+
+   rm -rf gcc-stage
+   mkdir gcc-stage
+   cd ./gcc-stage/
+   ../gcc-5.2.0/configure --prefix=$DEV_PREFIX/gcc --with-gmp=$DEV_PREFIX/gcc-deps/ --with-mpfr=$DEV_PREFIX/gcc-deps/ --with-mpc=$DEV_PREFIX/gcc-deps/ \
+       --enable-languages=c,c++ \
+       --disable-bootstrap
+   make -j10
+   make install
+)
+
+sudo ldconfig -v

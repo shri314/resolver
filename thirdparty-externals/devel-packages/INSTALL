@@ -1,0 +1,31 @@
+#!/bin/bash
+
+SCRIPT_DIR=$(CDPATH= cd "$(dirname "$BASH_SOURCE")" && pwd);
+
+source "$SCRIPT_DIR/../../.env"
+
+(
+   set -e
+
+   PACKAGE=boost_1_60_0
+
+   if [ ! -f .${PACKAGE}.done ]
+   then
+      wget http://downloads.sourceforge.net/project/boost/boost/1.60.0/boost_1_60_0.tar.bz2
+      rm -rf ${PACKAGE}
+      tar xjf ${PACKAGE}.tar.bz2
+
+      (
+         set -e
+         cd ${PACKAGE}
+         ./bootstrap.sh --prefix="$DEV_PREFIX/${PACKAGE}"
+         ./b2 --without-python
+         ./b2 --without-python install
+
+      ) || exit 1
+
+      touch .${PACKAGE}.done
+   fi
+
+) || exit 1
+
