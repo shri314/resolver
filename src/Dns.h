@@ -384,7 +384,7 @@ namespace DnsProtocol
    struct PtrOffset2LabelInverter_t
    {
       virtual std::string operator()(uint16_t ptr_offset) = 0;
-      virtual ptr_offset operator()(const std::string& name) = 0;
+      // virtual ptr_offset operator()(const std::string& name) = 0;
    };
 
    struct LabelList_t
@@ -395,10 +395,10 @@ namespace DnsProtocol
             Set(std::string());
          }
 
-         LabelList_t(const PtrOffset2LabelInverter_t& PO2LInvt)
+         explicit LabelList_t(PtrOffset2LabelInverter_t* PO2LInvt)
             : m_PO2LInvt(PO2LInvt)
          {
-            Set(std::string())
+            Set(std::string());
          }
 
          template<class Iter>
@@ -530,7 +530,7 @@ namespace DnsProtocol
          {
             auto&& xx = Get(start_offset);
 
-            return xx.first + m_PO2LInvt(xx.second);
+            return xx.first + (*m_PO2LInvt)(xx.second);
          }
 
          std::pair<std::string, uint16_t> Get(uint16_t start_offset = 0) const
@@ -614,7 +614,7 @@ namespace DnsProtocol
 
       private:
          std::vector<uint8_t> m_store;
-         PtrOffset2LabelInverter_t m_PO2LInvt;
+         PtrOffset2LabelInverter_t* m_PO2LInvt;
    };
 
    struct Question_t
@@ -624,7 +624,7 @@ namespace DnsProtocol
          {
          }
 
-         Question_t(const PtrOffset2LabelInverter_t& PO2LInvt)
+         explicit Question_t(PtrOffset2LabelInverter_t* PO2LInvt)
             : m_qname(PO2LInvt)
          {
          }
@@ -723,7 +723,7 @@ namespace DnsProtocol
          {
          }
 
-         ResourceRecord_t(const PtrOffset2LabelInverter_t& PO2LInvt)
+         explicit ResourceRecord_t(PtrOffset2LabelInverter_t* PO2LInvt)
             : m_rrname(PO2LInvt)
          {
          }
@@ -881,6 +881,7 @@ namespace DnsProtocol
    {
       public:
          Dns_t()
+            : m_PO2LInvt(this)
          {
          }
 
@@ -955,7 +956,6 @@ namespace DnsProtocol
 
             return 0; // anything less then 12 can't be a valid offset
          }
-         */
 
          uint16_t FindOffset(const std::string& label)
          {
@@ -977,6 +977,7 @@ namespace DnsProtocol
 
             return 0; // anything less then 12 can't be a valid offset
          }
+         */
 
       private:
          struct PO2LInvt_t : PtrOffset2LabelInverter_t
@@ -988,22 +989,30 @@ namespace DnsProtocol
 
             std::string operator()(uint16_t ptr_offset) override
             {
-               return m_DNS->LabelAt(ptr_offset);
+               return "haha";
+               // return m_DNS->LabelAt(ptr_offset);
             }
 
+            /*
             ptr_offset operator()(const std::string& name) override
             {
                return m_DNS->OffsetFor(ptr_offset);
             }
-         };
+            */
 
+            Dns_t* m_DNS;
+
+         };
+         
+         PO2LInvt_t m_PO2LInvt;
+         std::vector<LabelList_t> m_OtherLabels;
+
+      private:
          Header_t m_Header;
          std::vector<Question_t> m_Question;
          std::vector<ResourceRecord_t> m_Answer;
          std::vector<ResourceRecord_t> m_Authority;
          std::vector<ResourceRecord_t> m_Additional;
-
-         std::vector<LabelList_t> m_OtherLabels;
    };
 };
 
