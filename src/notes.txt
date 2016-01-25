@@ -1,0 +1,227 @@
+
+struct DNS_Component_Store_t
+{
+   int NewStorage(int type, int sz = 0) {
+      m_store.resize( 1 + m_store.size() );
+
+      m_StoreTypes[type].push_back(m_store.size() - 1);
+
+      m_Store.back().resize( sz );
+
+      return m_store.size() - 1;
+   }
+
+
+         vector<uint8_t>& StoreRef(int x)       { return m_store[x]; }   
+   const vector<uint8_t>& StoreRef(int x) const { return m_store[x]; }   
+
+private:
+   vector< vector<uint8_t> > m_store;
+   map< int, vector<int> > m_StoreTypes;
+};
+
+
+
+struct DNSVariableEntity_t
+{
+   int Size() { Store().size(); }
+
+   Save(vector<uint8_t>& res) { res.append( StoreRef().begin(), StoreRef().end() );
+
+   Load();
+
+   DNSProtocolEntity( DNS_Component_store_t* cstore, int type = 0 )
+      : m_store_index( cstore.NewStore(type, 0) )
+   {
+   }
+
+
+protected:
+   vector<uint8_t>& StoreRef() {
+      return cstore.StoreRef(m_store_index);
+   }
+
+   int StoreIndex() const { return m_store_index; }
+
+private:
+   int m_store_index;
+};
+
+
+template<class T, class U...>
+class DNSFixedEntity_t
+{
+   DNSProtocolEntity( DNS_Component_store_t* cstore, int type = 0 )
+      : m_store_index( cstore.NewStore(type, Size()) )
+   {
+   }
+
+   constexpr auto Size() const { return sizeof(T) + sizeof(U)...; }
+
+protected:
+   template<int i>
+   type<i>& get() {
+      return ...;
+   }
+
+   template<>
+   T& get<0>() {
+      return cstore.StoreRef(m_store_index)[0];
+   }
+
+   int StoreIndex() const { return m_store_index; }
+
+private:
+   int m_store_index;
+};
+
+
+class Header_t
+{
+   Header_t( DNS_Component_store_t* cstore )
+      : m_pe( cstore )
+   {
+   }
+
+   ...
+   Query( qr );
+   RecursionR( rr );
+   ANCount( anc );
+
+   DNSFixedEntity_t<uint16_t, uint8_t, uint8_t, uint8_t, uint8_t, uint16_t, uint16_t, uint16_t> m_pe;
+};
+
+class LabelList_t
+{
+   LabelList_t( DNS_Component_Store_t* cstore )
+      : m_pe( cstore )
+   {
+      Name("");
+   }
+
+   Name(name, ptr_offset) { ... }
+   <name,ptr_offset> Name(start_offset) { ... }
+
+   DNSVariableEntity_t m_pe;
+};
+
+
+class Question_t
+{
+   Question_t( DNS_Component_Store_t* cstore )
+      : m_Label( cstore )
+      , m_pe( cstore )
+   {
+   }
+
+   QName( name ) { m_Label.Set(name); }
+   QType(type);
+   QClass(class);
+
+private:
+   LabelList m_Label;
+   DNSFixedEntity_t<int16_t, int16_t> m_pe;
+};
+
+
+class ResourceRecord_t
+{
+public:
+   ResourceRecord_t( DNS_Component_Store_t* cstore )
+      : m_rname( cstore )
+      , m_pe( cstore )
+   {
+   }
+
+   auto RName(name) {
+      return m_rname.Set(name);
+   }
+
+   auto RName() {
+      return m_rname.Get();
+   }      
+
+   Size() { m_rname.Size() + m_pe.Size(); }
+
+   Type( t )       { m_pe.get<0>(); }
+   Class( class_ ) { m_pe.get<1>(); }
+   TTL( ttl )      { m_pe.get<2>(); }
+   RDLength()      { m_pe.get<3>(); }
+
+   LabelList_t m_rname
+   DNSProtocolEntity_t<uint16_t,uint16_t,uint32_t,uint16_t> m_pe
+};
+
+
+class MX_ResourceRecord_t : public ResourceRecord_t
+{
+   MX_ResourceRecord_t( DNS_Component_Store_t* cstore )
+      : ResourceRecord_t( cstore )
+      , m_pe( cstore )
+      , m_mxentry( cstore )
+   {
+   }
+
+   MXEntry(name) {
+      m_mxentry.Name(name);
+      ResourceRecord_t::RDLength( LocalSize() ); }
+   }
+
+   MXEntry() {
+      m_mxentry.Name();
+   }
+
+   RDLength( int ) = delete;
+
+   MXPreference() { m_pe.get<0>(); }
+   MXPriority()   { m_pe.get<1>(); }
+
+   auto Size() { return ResourceRecord_t::Size() + LocalSize(); }
+
+private:
+   auto LocalSize() { return m_mxentry.Size() + m_pe.Size() }
+
+private:
+   DNSFixedEntity<int16_t, int16_t> m_pe;
+   LabelList_t m_mxentry;
+};
+
+
+
+class DNS_t
+{
+   Header_t;
+   vector<Question_t> m_q;
+   vector<ResourceRecord_t> m_ans;
+
+   Question_t& Question(int x)
+   {
+      m_q.push_back( Question_t(m_comp_store.Storage(x))
+      m_q.resize(x);
+      return m_q.back();
+   }
+
+
+private:
+   DNS_Component_Store_t m_comp_store;
+};
+
+
+class DNS_Query
+{
+   DNS_t m_dns;
+};
+
+class DNS_Response
+{
+   const Question& Question(int x) {
+      m_q.
+   }
+};
+
+
+DNS_MX_Query
+DNS_MX_Response
+
+DNS_ZX_Query
+DNS_PX_Query
