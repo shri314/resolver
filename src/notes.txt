@@ -119,7 +119,7 @@ class Question_t
    QClass(class);
 
 private:
-   LabelList m_Label;
+   LabelList_t m_Label;
    DNSFixedEntity_t<int16_t, int16_t> m_pe;
 };
 

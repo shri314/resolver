@@ -283,7 +283,8 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Header_t_Save)
    {
       BOOST_TEST_CONTEXT(Datum.test_context)
       {
-         auto pH = make_my_unique<DnsProtocol::Header_t>(); // TEST OBJECT
+         std::vector<uint8_t> store;
+         auto pH = make_my_unique<DnsProtocol::Header_t>(store); // TEST OBJECT
 
          /// Set
          {
@@ -521,7 +522,8 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Header_t_Load)
    {
       BOOST_TEST_CONTEXT(Datum.test_context)
       {
-         auto pH = make_my_unique<DnsProtocol::Header_t>(); // TEST OBJECT
+         std::vector<uint8_t> store;
+         auto pH = make_my_unique<DnsProtocol::Header_t>(store); // TEST OBJECT
 
          /// Set
          {
