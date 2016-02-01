@@ -42,7 +42,8 @@ int main(int argc, char** argv)
    io_service.run();
 
 
-   DnsProtocol::LabelList_t qn;
+   std::vector<uint8_t> store;
+   DnsProtocol::LabelList_t qn(store);
    
    qn.Set("www.yahoo.com");
 

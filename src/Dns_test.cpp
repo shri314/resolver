@@ -594,7 +594,8 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_LabelList_t_Get)
 {
    BOOST_TEST_CONTEXT("Get (without start_offset)")
    {
-      auto pQN = make_my_unique<DnsProtocol::LabelList_t>(); // TEST OBJECT
+      std::vector<uint8_t> store;
+      auto pQN = make_my_unique<DnsProtocol::LabelList_t>(store); // TEST OBJECT
 
       pQN->Set("www.yahoo.com");
 
@@ -608,7 +609,8 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_LabelList_t_Get)
 
    BOOST_TEST_CONTEXT("Get with ptr_offset (without start_offset)")
    {
-      auto pQN = make_my_unique<DnsProtocol::LabelList_t>(); // TEST OBJECT
+      std::vector<uint8_t> store;
+      auto pQN = make_my_unique<DnsProtocol::LabelList_t>(store); // TEST OBJECT
 
       pQN->Set("www.yahoo.com", 45);
 
@@ -622,7 +624,8 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_LabelList_t_Get)
 
    BOOST_TEST_CONTEXT("Get with start_offset")
    {
-      auto pQN = make_my_unique<DnsProtocol::LabelList_t>(); // TEST OBJECT
+      std::vector<uint8_t> store;
+      auto pQN = make_my_unique<DnsProtocol::LabelList_t>(store); // TEST OBJECT
 
       pQN->Set("www.yahoo.com");
 
@@ -636,7 +639,8 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_LabelList_t_Get)
 
    BOOST_TEST_CONTEXT("Get with start_offset + ptr_offset")
    {
-      auto pQN = make_my_unique<DnsProtocol::LabelList_t>(); // TEST OBJECT
+      std::vector<uint8_t> store;
+      auto pQN = make_my_unique<DnsProtocol::LabelList_t>(store); // TEST OBJECT
 
       pQN->Set("www.yahoo.com", 45);
 
@@ -869,7 +873,8 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_LabelList_t_Save)
    {
       BOOST_TEST_CONTEXT(Datum.test_context)
       {
-         auto pQN = make_my_unique<DnsProtocol::LabelList_t>(); // TEST OBJECT
+         std::vector<uint8_t> store;
+         auto pQN = make_my_unique<DnsProtocol::LabelList_t>(store); // TEST OBJECT
 
          std::string initial_name     = "www.initial.com"s;
          std::string initial_stream   = "[www.initial.com]"s;
@@ -1118,7 +1123,8 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_LabelList_t_Load)
       BOOST_TEST_CONTEXT(Datum.test_context)
       {
          // Check sane test configuration
-         auto pQN = make_my_unique<DnsProtocol::LabelList_t>(); // TEST OBJECT
+         std::vector<uint8_t> store;
+         auto pQN = make_my_unique<DnsProtocol::LabelList_t>(store); // TEST OBJECT
 
          std::string initial_raw_data = "\3www\7initial\3com\0"s;
          std::string initial_name     = "www.initial.com"s;
@@ -1203,7 +1209,8 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Question_t_Save)
    {
       BOOST_TEST_CONTEXT(Datum.test_context)
       {
-         auto pQ = make_my_unique<DnsProtocol::Question_t>(); // TEST OBJECT
+         std::vector<uint8_t> store;
+         auto pQ = make_my_unique<DnsProtocol::Question_t>(store); // TEST OBJECT
 
          pQ->QName(Datum.input_QName);
          pQ->QType(Datum.input_QType);
@@ -1255,7 +1262,8 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Question_t_Load)
    {
       BOOST_TEST_CONTEXT(Datum.test_context)
       {
-         auto pQ = make_my_unique<DnsProtocol::Question_t>(); // TEST OBJECT
+         std::vector<uint8_t> store;
+         auto pQ = make_my_unique<DnsProtocol::Question_t>(store); // TEST OBJECT
 
          auto&& b = Datum.input_raw_data.begin();
          auto&& e = Datum.input_raw_data.end();
