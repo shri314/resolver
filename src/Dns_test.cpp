@@ -917,8 +917,6 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_LabelList_t_Save)
 
 BOOST_AUTO_TEST_CASE(DnsProtocol_LabelList_t_Load)
 {
-   // std::cout << getpid() << "\n"; sleep(15);
-
    struct
    {
       std::string test_context;

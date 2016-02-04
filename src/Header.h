@@ -2,6 +2,7 @@
 
 #include "vector_end_range.h"
 #include "bad_data_stream.h"
+#include <iostream>
 
 namespace DnsProtocol
 {
@@ -12,6 +13,12 @@ namespace DnsProtocol
             : m_store(store, 12)
          {
             ZCode(0);
+         }
+
+         explicit Header_t(std::vector<uint8_t>& store, const Header_t& rhs)
+            : m_store(store, 12)
+         {
+            std::copy( rhs.m_store.begin(), rhs.m_store.end(), m_store.begin() );
          }
 
          Header_t& ID(uint16_t v)
