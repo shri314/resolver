@@ -20,24 +20,50 @@ void handle_resolve_query(const error_code& ec, resolver::iterator iter)
    }
 }
 
+
+/*
+void handle_dns_answers(DnsProtocol::Response::iterator iter)
+{
+}
+*/
+
 int main(int argc, char** argv)
 {
    asio::io_service io_service;
    resolver resolver(io_service);
 
-   std::vector< std::unique_ptr<DnsProtocol::Dns_t> > res;
+   /*
+   DnsProtocol::Resolver dns_resolver(io_service);
+   */
 
    for(int i = 1; i < argc; ++i)
    {
-      auto&& pDNS = DnsProtocol::Query().WithID(rand() % 65536).WithRecurrsion()
-                    .AddQuestionNamed(argv[i]).WithQType(1).WithQClass(2)
-                    .Build();
+      {
+         auto&& pDNSReq = DnsProtocol::Query().WithID(rand() % 65536).WithRecurrsion()
+                          .AddQuestionNamed(argv[i]).WithQType(1).WithQClass(2)
+                          .Build();
 
-      std::cout << *pDNS << "\n";
+         std::cout << *pDNSReq << "\n";
+      }
 
-      res.emplace_back(std::move(pDNS));
+      /*
+      dns_resolver.async_resolve(
+         DnsProtocol::Query()
+            .WithID(rand() % 65536)
+            .WithRecurrsion()
+         .AddQuestionNamed(argv[i])
+            .WithQType(1)
+            .WithQClass(2)
+         .Build(),
 
-      resolver.async_resolve(resolver::query(argv[i], "http"), handle_resolve_query);
+         handle_dns_answers
+      );
+      */
+
+      resolver.async_resolve(
+         resolver::query(argv[i], "http"),
+         handle_resolve_query
+      );
    }
 
    io_service.run();
