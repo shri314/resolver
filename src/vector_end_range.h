@@ -37,7 +37,7 @@ namespace DnsProtocol
 
             auto size() const
             {
-               return m_ref.size() - m_first;
+               return m_size;
             }
 
             void push_back(uint8_t x)

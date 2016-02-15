@@ -137,6 +137,26 @@ namespace DnsProtocol
             this->Clear();
          }
 
+         void Save(std::vector<boost::asio::const_buffer>& buf) const
+         {
+            buf.push_back(boost::asio::const_buffer{&m_store[0], m_store.size()});
+         }
+
+         void Save(std::vector<uint8_t>& buf) const
+         {
+            std::copy(m_store.begin(), m_store.end(), std::back_inserter(buf));
+         }
+
+         auto Save() const
+         {
+            return m_store;
+         }
+
+         auto Buffer() const
+         {
+            return boost::asio::buffer(&m_store[0], m_store.size());
+         }
+
       private:
          std::vector<uint8_t> m_store;
 
