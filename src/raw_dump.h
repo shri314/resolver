@@ -1,52 +1,108 @@
 #pragma once
 
-std::string OctRep(unsigned char x, bool keep_printables = false)
-{
-   std::ostringstream oss;
+#include <ostream>
+#include <experimental/optional>
+#include <cctype>
 
-   if(isalpha(x) || (keep_printables && std::isprint(x) && !std::isspace(x)))
-      oss << x;
-   else
+template<class I>
+std::ostream& DumpOct(std::ostream& os, I begin, I end)
+{
+   std::experimental::optional<unsigned> z;
+
+   for(; begin != end; ++begin)
    {
-      if(x < 8)
-         oss << "\\00" << std::oct << (unsigned)x;
-      else if(x < 64)
-         oss << "\\0" << std::oct << (unsigned)x;
-      else
-         oss << "\\" << std::oct << (unsigned)x;
+      unsigned char x = static_cast<unsigned char>(*begin);
+
+      if(z)
+      {
+         if(x >= '0' && x <= '9')
+         {
+            // if current char is a number character, ensure previous number is printed with zero padding
+
+            if(*z < 8)
+               os << "\\00" << std::oct << *z;
+            else if(*z < 64)
+               os << "\\0" << std::oct << *z;
+         }
+         else
+            os << "\\" << std::oct << *z;
+
+         z = {};
+      }
+
+      switch(x)
+      {
+         case '\t':
+            os << "\\t";
+            break;
+
+         case '\f':
+            os << "\\f";
+            break;
+
+         case '\r':
+            os << "\\r";
+            break;
+
+         case '\n':
+            os << "\\n";
+            break;
+
+         case '\v':
+            os << "\\v";
+            break;
+
+         case '\\':
+            os << "\\\\";
+            break;
+
+         case '"':
+            os << "\\\"";
+            break;
+
+         default:
+            if(std::isprint(x))
+               os << x;
+            else
+               z = static_cast<unsigned>(x);
+            break;
+      }
    }
 
-   return oss.str();
+   if(z)
+      os << "\\" << std::oct << *z;
+
+   return os;
 }
 
 std::string OctRep(const std::vector<uint8_t>& data)
 {
    std::ostringstream oss;
-   for(auto x : data)
-      oss << OctRep((unsigned char)x);
-
+   DumpOct(oss, data.begin(), data.end());
    return oss.str();
 }
 
 std::string OctRep(const std::string& data)
 {
    std::ostringstream oss;
-   for(auto x : data)
-      oss << OctRep((unsigned char)x);
-
+   DumpOct(oss, data.begin(), data.end());
    return oss.str();
 }
 
 std::string OctRep(uint32_t x)
 {
    unsigned char* b = reinterpret_cast<unsigned char*>(&x);
-   return OctRep(std::string(b, b + sizeof(x)));
+
+   std::ostringstream oss;
+   DumpOct(oss, b, b + sizeof(x));
+   return oss.str();
 }
 
 std::string OctRep(uint16_t x)
 {
    unsigned char* b = reinterpret_cast<unsigned char*>(&x);
-   return OctRep(std::string(b, b + sizeof(x)));
+
+   std::ostringstream oss;
+   DumpOct(oss, b, b + sizeof(x));
+   return oss.str();
 }
-
-
