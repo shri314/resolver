@@ -35,7 +35,7 @@ namespace dns
                       (m_Res1 ? 0x40 : 0) |
                       (m_AD ? 0x20 : 0) |
                       (m_CD ? 0x10 : 0) |
-                      (static_cast<uint8_t>(m_OpCode) & 0xF);
+                      (static_cast<uint8_t>(m_RCode) & 0xF);
             }
 
             {
@@ -92,8 +92,8 @@ namespace dns
 
                m_RA = (v & 0x80) == 0x80 ? true : false;
                m_Res1 = (v & 0x40) == 0x40 ? true : false;
-               m_Res1 = (v & 0x20) == 0x20 ? true : false;
-               m_Res1 = (v & 0x10) == 0x10 ? true : false;
+               m_AD = (v & 0x20) == 0x20 ? true : false;
+               m_CD = (v & 0x10) == 0x10 ? true : false;
                m_RCode = static_cast<r_code_t>(v & 0xF);
             }
 

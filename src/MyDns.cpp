@@ -40,8 +40,15 @@ void basic_io(int argc, char** argv)
 
 void basic_dns(int argc, char** argv)
 {
+   --argc; ++argv;
+
+   if(argc <= 0)
+      return;
+
+   std::string dns_host = *argv;
+
    boost::asio::io_service io;
-   boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string("8.8.8.8"), 53);
+   boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string(dns_host), 53);
    boost::asio::ip::tcp::socket socket(io);
    std::vector<uint8_t> write_buffer;
    std::vector<uint8_t> recv_buffer;

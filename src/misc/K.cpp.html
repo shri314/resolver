@@ -1,0 +1,157 @@
+<html>
+<head>
+<title>~/DNS/resolver/src/K.cpp.html</title>
+<meta name="Generator" content="Vim/7.0">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+</head>
+<body bgcolor="#000000" text="#ffffff">
+<pre>
+<font color="#8080ff"><b>#include </b></font><font color="#ff40ff"><b>&lt;iostream&gt;</b></font>
+
+<font color="#00ff00"><b>struct</b></font> Lifter
+{
+};
+
+<font color="#00ff00"><b>template</b></font>&lt;<font color="#00ff00"><b>class</b></font> LExpr, <font color="#00ff00"><b>class</b></font> RExpr, <font color="#00ff00"><b>class</b></font> BinOp&gt;
+<font color="#00ff00"><b>struct</b></font> MyExpr
+{
+      MyExpr(LExpr le, RExpr re, BinOp bop, std::string sbop)
+         : <font color="#ffffff"><b>m_le</b></font>{le}
+         , <font color="#ffffff"><b>m_re</b></font>{re}
+         , <font color="#ffffff"><b>m_bop</b></font>(bop)
+         , <font color="#ffffff"><b>m_sbop</b></font>(sbop)
+      {
+      }
+
+      <font color="#00ff00"><b>auto</b></font> value() <font color="#00ff00"><b>const</b></font>
+      {
+         <font color="#ffff00"><b>return</b></font> <font color="#ffffff"><b>m_bop</b></font>( <font color="#ffffff"><b>m_le</b></font>.value(), <font color="#ffffff"><b>m_re</b></font>.value() );
+      }
+
+      <font color="#00ff00"><b>void</b></font> print() <font color="#00ff00"><b>const</b></font>
+      {
+         <font color="#ffffff"><b>m_le</b></font>.print();
+         std::cout &lt;&lt; <font color="#ffffff"><b>m_sbop</b></font>;
+         <font color="#ffffff"><b>m_re</b></font>.print();
+      }
+
+   <font color="#ffff00"><b>private</b></font>:
+      LExpr <font color="#ffffff"><b>m_le</b></font>;
+      RExpr <font color="#ffffff"><b>m_re</b></font>;
+      BinOp <font color="#ffffff"><b>m_bop</b></font>;
+      std::string <font color="#ffffff"><b>m_sbop</b></font>;
+};
+
+<font color="#00ff00"><b>template</b></font>&lt;<font color="#00ff00"><b>class</b></font> RawV&gt;
+<font color="#00ff00"><b>struct</b></font> MyExpr&lt;RawV, <font color="#00ff00"><b>void</b></font>, <font color="#00ff00"><b>void</b></font>&gt;
+{
+      MyExpr(RawV r)
+         : <font color="#ffffff"><b>m_r</b></font>{r}
+      {
+      }
+
+      <font color="#00ff00"><b>auto</b></font> value() <font color="#00ff00"><b>const</b></font>
+      {
+         <font color="#ffff00"><b>return</b></font> <font color="#ffffff"><b>m_r</b></font>;
+      }
+
+      <font color="#00ff00"><b>bool</b></font> print() <font color="#00ff00"><b>const</b></font>
+      {
+         std::cout &lt;&lt; <font color="#ff40ff"><b>&quot;'&quot;</b></font> &lt;&lt; <font color="#ffffff"><b>m_r</b></font> &lt;&lt; <font color="#ff40ff"><b>&quot;'&quot;</b></font>;
+      }
+
+   <font color="#ffff00"><b>private</b></font>:
+      RawV <font color="#ffffff"><b>m_r</b></font>;
+};
+
+<font color="#8080ff"><b>/// OPERATORS</b></font>
+
+<font color="#00ff00"><b>template</b></font>&lt;<font color="#00ff00"><b>class</b></font> T&gt;
+MyExpr&lt;T, <font color="#00ff00"><b>void</b></font>, <font color="#00ff00"><b>void</b></font>&gt; <font color="#ffff00"><b>operator</b></font>+ (Lifter, T a)
+{
+   <font color="#ffff00"><b>return</b></font> MyExpr&lt;T, <font color="#00ff00"><b>void</b></font>, <font color="#00ff00"><b>void</b></font>&gt; {a};
+}
+
+<font color="#00ff00"><b>template</b></font>&lt;<font color="#00ff00"><b>class</b></font> LE, <font color="#00ff00"><b>class</b></font> RE, <font color="#00ff00"><b>class</b></font> Bop, <font color="#00ff00"><b>class</b></font> RawR&gt;
+<font color="#00ff00"><b>auto</b></font> <font color="#ffff00"><b>operator</b></font>&lt;( MyExpr&lt;LE, RE, Bop&gt; lbe, RawR r)
+{
+   <font color="#00ff00"><b>auto</b></font> bop = [](<font color="#00ff00"><b>auto</b></font> a, <font color="#00ff00"><b>auto</b></font> b) { <font color="#ffff00"><b>return</b></font> a &lt; b; };
+
+   <font color="#ffff00"><b>return</b></font> MyExpr&lt; MyExpr&lt;LE, RE, Bop&gt;, MyExpr&lt;RawR, <font color="#00ff00"><b>void</b></font>, <font color="#00ff00"><b>void</b></font>&gt;, <font color="#00ff00"><b>decltype</b></font>(bop) &gt; { lbe, MyExpr&lt;RawR, <font color="#00ff00"><b>void</b></font>, <font color="#00ff00"><b>void</b></font>&gt;{r}, bop, <font color="#ff40ff"><b>&quot; &gt;= &quot;</b></font> };
+}
+
+<font color="#00ff00"><b>template</b></font>&lt;<font color="#00ff00"><b>class</b></font> LE, <font color="#00ff00"><b>class</b></font> RE, <font color="#00ff00"><b>class</b></font> Bop, <font color="#00ff00"><b>class</b></font> RawR&gt;
+<font color="#00ff00"><b>auto</b></font> <font color="#ffff00"><b>operator</b></font>&lt;=( MyExpr&lt;LE, RE, Bop&gt; lbe, RawR r)
+{
+   <font color="#00ff00"><b>auto</b></font> bop = [](<font color="#00ff00"><b>auto</b></font> a, <font color="#00ff00"><b>auto</b></font> b) { <font color="#ffff00"><b>return</b></font> a &lt;= b; };
+
+   <font color="#ffff00"><b>return</b></font> MyExpr&lt; MyExpr&lt;LE, RE, Bop&gt;, MyExpr&lt;RawR, <font color="#00ff00"><b>void</b></font>, <font color="#00ff00"><b>void</b></font>&gt;, <font color="#00ff00"><b>decltype</b></font>(bop) &gt; { lbe, MyExpr&lt;RawR, <font color="#00ff00"><b>void</b></font>, <font color="#00ff00"><b>void</b></font>&gt;{r}, bop, <font color="#ff40ff"><b>&quot; &gt; &quot;</b></font> };
+}
+
+<font color="#00ff00"><b>template</b></font>&lt;<font color="#00ff00"><b>class</b></font> LE, <font color="#00ff00"><b>class</b></font> RE, <font color="#00ff00"><b>class</b></font> Bop, <font color="#00ff00"><b>class</b></font> RawR&gt;
+<font color="#00ff00"><b>auto</b></font> <font color="#ffff00"><b>operator</b></font>&gt;=( MyExpr&lt;LE, RE, Bop&gt; lbe, RawR r)
+{
+   <font color="#00ff00"><b>auto</b></font> bop = [](<font color="#00ff00"><b>auto</b></font> a, <font color="#00ff00"><b>auto</b></font> b) { <font color="#ffff00"><b>return</b></font> a &gt;= b; };
+
+   <font color="#ffff00"><b>return</b></font> MyExpr&lt; MyExpr&lt;LE, RE, Bop&gt;, MyExpr&lt;RawR, <font color="#00ff00"><b>void</b></font>, <font color="#00ff00"><b>void</b></font>&gt;, <font color="#00ff00"><b>decltype</b></font>(bop) &gt; { lbe, MyExpr&lt;RawR, <font color="#00ff00"><b>void</b></font>, <font color="#00ff00"><b>void</b></font>&gt;{r}, bop, <font color="#ff40ff"><b>&quot; &lt; &quot;</b></font> };
+}
+
+<font color="#00ff00"><b>template</b></font>&lt;<font color="#00ff00"><b>class</b></font> LE, <font color="#00ff00"><b>class</b></font> RE, <font color="#00ff00"><b>class</b></font> Bop, <font color="#00ff00"><b>class</b></font> RawR&gt;
+<font color="#00ff00"><b>auto</b></font> <font color="#ffff00"><b>operator</b></font>&gt;( MyExpr&lt;LE, RE, Bop&gt; lbe, RawR r)
+{
+   <font color="#00ff00"><b>auto</b></font> bop = [](<font color="#00ff00"><b>auto</b></font> a, <font color="#00ff00"><b>auto</b></font> b) { <font color="#ffff00"><b>return</b></font> a &gt; b; };
+
+   <font color="#ffff00"><b>return</b></font> MyExpr&lt; MyExpr&lt;LE, RE, Bop&gt;, MyExpr&lt;RawR, <font color="#00ff00"><b>void</b></font>, <font color="#00ff00"><b>void</b></font>&gt;, <font color="#00ff00"><b>decltype</b></font>(bop) &gt; { lbe, MyExpr&lt;RawR, <font color="#00ff00"><b>void</b></font>, <font color="#00ff00"><b>void</b></font>&gt;{r}, bop, <font color="#ff40ff"><b>&quot; &lt;= &quot;</b></font> };
+}
+
+<font color="#00ff00"><b>template</b></font>&lt;<font color="#00ff00"><b>class</b></font> LE, <font color="#00ff00"><b>class</b></font> RE, <font color="#00ff00"><b>class</b></font> Bop, <font color="#00ff00"><b>class</b></font> RawR&gt;
+<font color="#00ff00"><b>auto</b></font> <font color="#ffff00"><b>operator</b></font>==( MyExpr&lt;LE, RE, Bop&gt; lbe, RawR r)
+{
+   <font color="#00ff00"><b>auto</b></font> bop = [](<font color="#00ff00"><b>auto</b></font> a, <font color="#00ff00"><b>auto</b></font> b) { <font color="#ffff00"><b>return</b></font> a == b; };
+
+   <font color="#ffff00"><b>return</b></font> MyExpr&lt; MyExpr&lt;LE, RE, Bop&gt;, MyExpr&lt;RawR, <font color="#00ff00"><b>void</b></font>, <font color="#00ff00"><b>void</b></font>&gt;, <font color="#00ff00"><b>decltype</b></font>(bop) &gt; { lbe, MyExpr&lt;RawR, <font color="#00ff00"><b>void</b></font>, <font color="#00ff00"><b>void</b></font>&gt;{r}, bop, <font color="#ff40ff"><b>&quot; != &quot;</b></font> };
+}
+
+<font color="#00ff00"><b>template</b></font>&lt;<font color="#00ff00"><b>class</b></font> LE, <font color="#00ff00"><b>class</b></font> RE, <font color="#00ff00"><b>class</b></font> Bop, <font color="#00ff00"><b>class</b></font> RawR&gt;
+<font color="#00ff00"><b>auto</b></font> <font color="#ffff00"><b>operator</b></font>+(MyExpr&lt;LE, RE, Bop&gt; l, RawR r)
+{
+   <font color="#00ff00"><b>auto</b></font> bop = [](<font color="#00ff00"><b>auto</b></font> a, <font color="#00ff00"><b>auto</b></font> b) { <font color="#ffff00"><b>return</b></font> a + b; };
+
+   <font color="#ffff00"><b>return</b></font> MyExpr&lt; MyExpr&lt;LE, RE, Bop&gt;, MyExpr&lt;RawR, <font color="#00ff00"><b>void</b></font>, <font color="#00ff00"><b>void</b></font>&gt;, <font color="#00ff00"><b>decltype</b></font>(bop) &gt; { l, MyExpr&lt;RawR, <font color="#00ff00"><b>void</b></font>, <font color="#00ff00"><b>void</b></font>&gt;{r}, bop, <font color="#ff40ff"><b>&quot; + &quot;</b></font> };
+}
+
+<font color="#00ff00"><b>template</b></font>&lt;<font color="#00ff00"><b>class</b></font> LE, <font color="#00ff00"><b>class</b></font> RE, <font color="#00ff00"><b>class</b></font> Bop, <font color="#00ff00"><b>class</b></font> RawR&gt;
+<font color="#00ff00"><b>auto</b></font> <font color="#ffff00"><b>operator</b></font>-(MyExpr&lt;LE, RE, Bop&gt; l, RawR r)
+{
+   <font color="#00ff00"><b>auto</b></font> bop = [](<font color="#00ff00"><b>auto</b></font> a, <font color="#00ff00"><b>auto</b></font> b) { <font color="#ffff00"><b>return</b></font> a - b; };
+
+   <font color="#ffff00"><b>return</b></font> MyExpr&lt; MyExpr&lt;LE, RE, Bop&gt;, MyExpr&lt;RawR, <font color="#00ff00"><b>void</b></font>, <font color="#00ff00"><b>void</b></font>&gt;, <font color="#00ff00"><b>decltype</b></font>(bop) &gt; { l, MyExpr&lt;RawR, <font color="#00ff00"><b>void</b></font>, <font color="#00ff00"><b>void</b></font>&gt;{r}, bop, <font color="#ff40ff"><b>&quot; - &quot;</b></font> };
+}
+
+<font color="#00ff00"><b>template</b></font>&lt;<font color="#00ff00"><b>class</b></font> LE, <font color="#00ff00"><b>class</b></font> RE, <font color="#00ff00"><b>class</b></font> Bop&gt;
+<font color="#00ff00"><b>void</b></font> foo(<font color="#00ff00"><b>const</b></font> <font color="#00ff00"><b>char</b></font>* str, MyExpr&lt;LE, RE, Bop&gt; expr)
+{
+   <font color="#ffff00"><b>if</b></font>(!expr.value())
+   {
+      std::cout &lt;&lt; <font color="#ff40ff"><b>&quot;Expression [&quot;</b></font> &lt;&lt; str &lt;&lt; <font color="#ff40ff"><b>&quot;] failed [&quot;</b></font>;
+      expr.print();
+      std::cout &lt;&lt; <font color="#ff40ff"><b>&quot;]</b></font><font color="#ff6060"><b>\n</b></font><font color="#ff40ff"><b>&quot;</b></font>;
+   }
+}
+
+<font color="#8080ff"><b>#define FOO(x) </b></font><font color="#ffff00"><b>do</b></font><font color="#8080ff"><b> { foo( #x, (Lifter() + x) ); } </b></font><font color="#ffff00"><b>while</b></font><font color="#8080ff"><b>(</b></font><font color="#ff40ff"><b>false</b></font><font color="#8080ff"><b>)</b></font>
+
+<font color="#00ff00"><b>int</b></font> main()
+{
+   <font color="#00ff00"><b>int</b></font> a = <font color="#ff40ff"><b>15</b></font>, b = <font color="#ff40ff"><b>12</b></font>;
+
+   FOO(b &lt; a);
+   FOO(a &lt; b);
+   FOO(a + <font color="#ff40ff"><b>1</b></font> &lt; b);
+   FOO(a == b);
+}
+
+
+</pre>
+</body>
+</html>

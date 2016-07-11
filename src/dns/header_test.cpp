@@ -122,6 +122,8 @@ BOOST_AUTO_TEST_CASE(dns_header_t_save_to)
       bool input_TC_Flag;
       bool input_RD_Flag;
       bool input_RA_Flag;
+      bool input_AD_Flag;
+      bool input_CD_Flag;
 
       dns::op_code_t input_OpCode;
       dns::r_code_t input_RCode;
@@ -140,7 +142,7 @@ BOOST_AUTO_TEST_CASE(dns_header_t_save_to)
          TEST_CONTEXT("query header"),
 
          /* ID */ 0xf9ac,
-         /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
          /* OpCode */ dns::op_code_t::query, /* RCode */ dns::r_code_t::no_error,
          /* QdCount */ 1, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 0,
 
@@ -152,7 +154,7 @@ BOOST_AUTO_TEST_CASE(dns_header_t_save_to)
          TEST_CONTEXT("response header"),
 
          /* ID */ 0x5006,
-         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
          /* OpCode */ dns::op_code_t::query, /* RCode */ dns::r_code_t::no_error,
          /* QdCount */ 0, /* AnCount */ 1, /* NsCount */ 0, /* ArCount */ 0,
 
@@ -164,7 +166,7 @@ BOOST_AUTO_TEST_CASE(dns_header_t_save_to)
          TEST_CONTEXT("response header with RCode"),
 
          /* ID */ 0x5006,
-         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
          /* OpCode */ dns::op_code_t::query, /* RCode */ dns::r_code_t::not_auth,
          /* QdCount */ 0, /* AnCount */ 1, /* NsCount */ 0, /* ArCount */ 0,
 
@@ -176,7 +178,7 @@ BOOST_AUTO_TEST_CASE(dns_header_t_save_to)
          TEST_CONTEXT("query header with RD"),
 
          /* ID */ 0xf9ac,
-         /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ true, /* RA_Flag */ false,
+         /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ true, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
          /* OpCode */ dns::op_code_t::query, /* RCode */ dns::r_code_t::no_error,
          /* QdCount */ 1, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 0,
 
@@ -188,11 +190,11 @@ BOOST_AUTO_TEST_CASE(dns_header_t_save_to)
          TEST_CONTEXT("query header with OpCode"),
 
          /* ID */ 0xf9ac,
-         /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
          /* OpCode */ dns::op_code_t::status, /* RCode */ dns::r_code_t::no_error,
          /* QdCount */ 1, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 0,
 
-         "\xf9\xac\x78\x00\x00\x01\x00\x00\x00\x00\x00\x00"s,
+         "\xf9\xac\x10\x00\x00\x01\x00\x00\x00\x00\x00\x00"s,
          "{ ID=63916, Flags=[QRY], OpCode=status, RCode=no_error, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
       },
 
@@ -200,7 +202,7 @@ BOOST_AUTO_TEST_CASE(dns_header_t_save_to)
          TEST_CONTEXT("response header with AA"),
 
          /* ID */ 0x1111,
-         /* QR_Flag */ true, /* AA_Flag */ true, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* QR_Flag */ true, /* AA_Flag */ true, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
          /* OpCode */ dns::op_code_t::query, /* RCode */ dns::r_code_t::no_error,
          /* QdCount */ 0, /* AnCount */ 0, /* NsCount */ 1, /* ArCount */ 0,
 
@@ -212,7 +214,7 @@ BOOST_AUTO_TEST_CASE(dns_header_t_save_to)
          TEST_CONTEXT("response header with TC"),
 
          /* ID */ 0xFFFF,
-         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ true, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ true, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
          /* OpCode */ dns::op_code_t::query, /* RCode */ dns::r_code_t::no_error,
          /* QdCount */ 0, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 1,
 
@@ -224,12 +226,36 @@ BOOST_AUTO_TEST_CASE(dns_header_t_save_to)
          TEST_CONTEXT("response header with RA"),
 
          /* ID */ 0xFFFF,
-         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ true,
+         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ true, /* AD_Flag */ false, /* CD_Flag */ false,
          /* OpCode */ dns::op_code_t::query, /* RCode */ dns::r_code_t::no_error,
          /* QdCount */ 0, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 1,
 
          "\xFF\xFF\x80\x80\x00\x00\x00\x00\x00\x00\x00\x01"s,
          "{ ID=65535, Flags=[RES,RA], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
+      },
+
+      {
+         TEST_CONTEXT("response header with AD"),
+
+         /* ID */ 0xFFFF,
+         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ true, /* CD_Flag */ false,
+         /* OpCode */ dns::op_code_t::query, /* RCode */ dns::r_code_t::no_error,
+         /* QdCount */ 0, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 1,
+
+         "\xFF\xFF\x80\x20\x00\x00\x00\x00\x00\x00\x00\x01"s,
+         "{ ID=65535, Flags=[RES,AD], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
+      },
+
+      {
+         TEST_CONTEXT("response header with CD"),
+
+         /* ID */ 0xFFFF,
+         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ true,
+         /* OpCode */ dns::op_code_t::query, /* RCode */ dns::r_code_t::no_error,
+         /* QdCount */ 0, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 1,
+
+         "\xFF\xFF\x80\x10\x00\x00\x00\x00\x00\x00\x00\x01"s,
+         "{ ID=65535, Flags=[RES,CD], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
       },
    };
 
@@ -249,6 +275,8 @@ BOOST_AUTO_TEST_CASE(dns_header_t_save_to)
             pH->TC_Flag(Datum.input_TC_Flag);
             pH->RD_Flag(Datum.input_RD_Flag);
             pH->RA_Flag(Datum.input_RA_Flag);
+            pH->AD_Flag(Datum.input_AD_Flag);
+            pH->CD_Flag(Datum.input_CD_Flag);
 
             pH->OpCode(Datum.input_OpCode);
             pH->RCode(Datum.input_RCode);
@@ -268,6 +296,8 @@ BOOST_AUTO_TEST_CASE(dns_header_t_save_to)
             BOOST_CHECK_EQUAL(pH->TC_Flag(), Datum.input_TC_Flag);
             BOOST_CHECK_EQUAL(pH->RD_Flag(), Datum.input_RD_Flag);
             BOOST_CHECK_EQUAL(pH->RA_Flag(), Datum.input_RA_Flag);
+            BOOST_CHECK_EQUAL(pH->AD_Flag(), Datum.input_AD_Flag);
+            BOOST_CHECK_EQUAL(pH->CD_Flag(), Datum.input_CD_Flag);
 
             BOOST_CHECK_EQUAL(pH->OpCode(),  Datum.input_OpCode);
             BOOST_CHECK_EQUAL(pH->RCode(),   Datum.input_RCode);
@@ -293,7 +323,7 @@ BOOST_AUTO_TEST_CASE(dns_header_t_save_to)
 }
 
 
-BOOST_AUTO_TEST_CASE(DnsProtocol_Header_t_Load)
+BOOST_AUTO_TEST_CASE(dns_header_t_load_from)
 {
    struct
    {
@@ -314,6 +344,8 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Header_t_Load)
       bool expected_TC_Flag;
       bool expected_RD_Flag;
       bool expected_RA_Flag;
+      bool expected_AD_Flag;
+      bool expected_CD_Flag;
 
       dns::op_code_t expected_OpCode;
       dns::r_code_t expected_RCode;
@@ -334,7 +366,7 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Header_t_Load)
          "{ ID=63916, Flags=[QRY], OpCode=query, RCode=no_error, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
 
          /* ID */ 0xf9ac,
-         /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
          /* OpCode */ dns::op_code_t::query, /* RCode */ dns::r_code_t::no_error,
          /* QdCount */ 1, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 0,
       },
@@ -348,7 +380,7 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Header_t_Load)
          "{ ID=63916, Flags=[QRY], OpCode=query, RCode=no_error, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
 
          /* ID */ 0xf9ac,
-         /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
          /* OpCode */ dns::op_code_t::query, /* RCode */ dns::r_code_t::no_error,
          /* QdCount */ 1, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 0,
       },
@@ -362,7 +394,7 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Header_t_Load)
          "{ ID=20486, Flags=[RES], OpCode=query, RCode=no_error, QdCount=0, AnCount=1, NsCount=0, ArCount=0 }",
 
          /* ID */ 0x5006,
-         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
          /* OpCode */ dns::op_code_t::query, /* RCode */ dns::r_code_t::no_error,
          /* QdCount */ 0, /* AnCount */ 1, /* NsCount */ 0, /* ArCount */ 0,
       },
@@ -376,7 +408,7 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Header_t_Load)
          "{ ID=20486, Flags=[RES], OpCode=query, RCode=no_error, QdCount=0, AnCount=1, NsCount=0, ArCount=0 }",
 
          /* ID */ 0x5006,
-         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
          /* OpCode */ dns::op_code_t::query, /* RCode */ dns::r_code_t::no_error,
          /* QdCount */ 0, /* AnCount */ 1, /* NsCount */ 0, /* ArCount */ 0,
       },
@@ -399,7 +431,7 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Header_t_Load)
          "{ ID=20486, Flags=[RES], OpCode=query, RCode=not_auth, QdCount=0, AnCount=1, NsCount=0, ArCount=0 }",
 
          /* ID */ 0x5006,
-         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
          /* OpCode */ dns::op_code_t::query, /* RCode */ dns::r_code_t::not_auth,
          /* QdCount */ 0, /* AnCount */ 1, /* NsCount */ 0, /* ArCount */ 0,
       },
@@ -413,21 +445,21 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Header_t_Load)
          "{ ID=63916, Flags=[QRY,RD], OpCode=query, RCode=no_error, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
 
          /* ID */ 0xf9ac,
-         /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ true, /* RA_Flag */ false,
+         /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ true, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
          /* OpCode */ dns::op_code_t::query, /* RCode */ dns::r_code_t::no_error,
          /* QdCount */ 1, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 0,
       },
 
       {
          TEST_CONTEXT("Load query header with OpCode"),
-         "\xf9\xac\x78\x00\x00\x01\x00\x00\x00\x00\x00\x00ZABCDEFGHIJKLMNOP"s,
+         "\xf9\xac\x10\x00\x00\x01\x00\x00\x00\x00\x00\x00ZABCDEFGHIJKLMNOP"s,
 
          exception_info(),
          12,
          "{ ID=63916, Flags=[QRY], OpCode=status, RCode=no_error, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
 
          /* ID */ 0xf9ac,
-         /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
          /* OpCode */ dns::op_code_t::status, /* RCode */ dns::r_code_t::no_error,
          /* QdCount */ 1, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 0,
       },
@@ -441,7 +473,7 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Header_t_Load)
          "{ ID=4369, Flags=[RES,AA], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=1, ArCount=0 }",
 
          /* ID */ 0x1111,
-         /* QR_Flag */ true, /* AA_Flag */ true, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* QR_Flag */ true, /* AA_Flag */ true, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
          /* OpCode */ dns::op_code_t::query, /* RCode */ dns::r_code_t::no_error,
          /* QdCount */ 0, /* AnCount */ 0, /* NsCount */ 1, /* ArCount */ 0,
       },
@@ -455,7 +487,7 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Header_t_Load)
          "{ ID=65535, Flags=[RES,TC], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
 
          /* ID */ 0xFFFF,
-         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ true, /* RD_Flag */ false, /* RA_Flag */ false,
+         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ true, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
          /* OpCode */ dns::op_code_t::query, /* RCode */ dns::r_code_t::no_error,
          /* QdCount */ 0, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 1,
       },
@@ -469,7 +501,35 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Header_t_Load)
          "{ ID=65535, Flags=[RES,RA], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
 
          /* ID */ 0xFFFF,
-         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ true,
+         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ true, /* AD_Flag */ false, /* CD_Flag */ false,
+         /* OpCode */ dns::op_code_t::query, /* RCode */ dns::r_code_t::no_error,
+         /* QdCount */ 0, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 1,
+      },
+
+      {
+         TEST_CONTEXT("Load response header with AD"),
+         "\xFF\xFF\x80\x20\x00\x00\x00\x00\x00\x00\x00\x01ZABCDEFGHIJKLMNOP"s,
+
+         exception_info(),
+         12,
+         "{ ID=65535, Flags=[RES,AD], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
+
+         /* ID */ 0xFFFF,
+         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ true, /* CD_Flag */ false,
+         /* OpCode */ dns::op_code_t::query, /* RCode */ dns::r_code_t::no_error,
+         /* QdCount */ 0, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 1,
+      },
+
+      {
+         TEST_CONTEXT("Load response header with CD"),
+         "\xFF\xFF\x80\x10\x00\x00\x00\x00\x00\x00\x00\x01ZABCDEFGHIJKLMNOP"s,
+
+         exception_info(),
+         12,
+         "{ ID=65535, Flags=[RES,CD], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
+
+         /* ID */ 0xFFFF,
+         /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ true,
          /* OpCode */ dns::op_code_t::query, /* RCode */ dns::r_code_t::no_error,
          /* QdCount */ 0, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 1,
       },
@@ -491,6 +551,8 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Header_t_Load)
             pH->TC_Flag(true);
             pH->RD_Flag(true);
             pH->RA_Flag(true);
+            pH->AD_Flag(true);
+            pH->CD_Flag(true);
 
             pH->OpCode(static_cast<dns::op_code_t>(0xFF));
             pH->RCode(static_cast<dns::r_code_t>(0xFF));
@@ -536,6 +598,8 @@ BOOST_AUTO_TEST_CASE(DnsProtocol_Header_t_Load)
                BOOST_CHECK_EQUAL(pH->TC_Flag(), Datum.expected_TC_Flag);
                BOOST_CHECK_EQUAL(pH->RD_Flag(), Datum.expected_RD_Flag);
                BOOST_CHECK_EQUAL(pH->RA_Flag(), Datum.expected_RA_Flag);
+               BOOST_CHECK_EQUAL(pH->AD_Flag(), Datum.expected_AD_Flag);
+               BOOST_CHECK_EQUAL(pH->CD_Flag(), Datum.expected_CD_Flag);
 
                BOOST_CHECK_EQUAL(pH->OpCode(),  Datum.expected_OpCode);
                BOOST_CHECK_EQUAL(pH->RCode(),   Datum.expected_RCode);
