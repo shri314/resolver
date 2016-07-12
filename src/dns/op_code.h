@@ -6,12 +6,14 @@ namespace dns
 {
    enum class op_code_t : uint8_t
    {
-      query  = 0,
-      iquery = 1,
-      status = 2,
+      query  = 0,    /* [RFC1035] */
+      iquery = 1,    /* (Inverse Query, OBSOLETE) [RFC3425] */
+      status = 2,    /* [RFC1035] */
+      notify = 4,    /* [RFC1996] */
+      update = 5,    /* [RFC2136] */
 
-      notify = 4,
-      update = 5,
+      /* unassigned = 3, */
+      /* unassigned = 6-15, */
    };
 
    std::ostream& operator<<(std::ostream& os, op_code_t rhs)
@@ -28,8 +30,8 @@ namespace dns
             return os << "notify";
          case op_code_t::update:
             return os << "update";
-         default:
-            return os << static_cast<unsigned>(rhs);
       }
+
+      return os << static_cast<unsigned>(rhs);
    }
 }

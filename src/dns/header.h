@@ -5,6 +5,8 @@
 
 #include "dns/op_code.h"
 #include "dns/r_code.h"
+#include "dns/name_offset_tracker.h"
+#include "dns/bin_serialize.h"
 
 #include "dns/exception/bad_data_stream.h"
 
@@ -13,54 +15,6 @@ namespace dns
    class header_t
    {
       public:
-      public:
-         template<class OutputIterator>
-         OutputIterator save_to(OutputIterator o)
-         {
-            {
-               *o++ = static_cast<uint8_t>(m_ID >> 8) & 0xFF;
-               *o++ = static_cast<uint8_t>(m_ID >> 0) & 0xFF;
-            }
-
-            {
-               *o++ = (m_QR ? 0x80 : 0) |
-                      ((static_cast<uint8_t>(m_OpCode) & 0xF) << 3) |
-                      (m_AA ? 0x04 : 0) |
-                      (m_TC ? 0x02 : 0) |
-                      (m_RD ? 0x01 : 0);
-            }
-
-            {
-               *o++ = (m_RA ? 0x80 : 0) |
-                      (m_Res1 ? 0x40 : 0) |
-                      (m_AD ? 0x20 : 0) |
-                      (m_CD ? 0x10 : 0) |
-                      (static_cast<uint8_t>(m_RCode) & 0xF);
-            }
-
-            {
-               *o++ = static_cast<uint8_t>(m_QdCount >> 8) & 0xFF;
-               *o++ = static_cast<uint8_t>(m_QdCount >> 0) & 0xFF;
-            }
-
-            {
-               *o++ = static_cast<uint8_t>(m_AnCount >> 8) & 0xFF;
-               *o++ = static_cast<uint8_t>(m_AnCount >> 0) & 0xFF;
-            }
-
-            {
-               *o++ = static_cast<uint8_t>(m_NsCount >> 8) & 0xFF;
-               *o++ = static_cast<uint8_t>(m_NsCount >> 0) & 0xFF;
-            }
-
-            {
-               *o++ = static_cast<uint8_t>(m_ArCount >> 8) & 0xFF;
-               *o++ = static_cast<uint8_t>(m_ArCount >> 0) & 0xFF;
-            }
-
-            return o;
-         }
-
          template<class InputIterator>
          InputIterator load_from(InputIterator cur_pos, InputIterator end)
          {
@@ -329,4 +283,29 @@ namespace dns
          uint16_t m_NsCount = 0;
          uint16_t m_ArCount = 0;
    };
+
+   template<class OutputIterator>
+   void save_to(OutputIterator& o, name_offset_tracker_t& no_tr, const header_t& h)
+   {
+      save_to(o, no_tr, h.ID());
+
+      save_to(o, no_tr, static_cast<uint8_t>(
+                 (h.QR_Flag() ? 0x80 : 0) |
+                 ((static_cast<uint8_t>(h.OpCode()) & 0xF) << 3) |
+                 (h.AA_Flag() ? 0x04 : 0) |
+                 (h.TC_Flag() ? 0x02 : 0) |
+                 (h.RD_Flag() ? 0x01 : 0)));
+
+      save_to(o, no_tr, static_cast<uint8_t>(
+                 (h.RA_Flag() ? 0x80 : 0) |
+                 (h.Res1_Flag() ? 0x40 : 0) |
+                 (h.AD_Flag() ? 0x20 : 0) |
+                 (h.CD_Flag() ? 0x10 : 0) |
+                 (static_cast<uint8_t>(h.RCode()) & 0xF)));
+
+      save_to(o, no_tr, h.QdCount());
+      save_to(o, no_tr, h.AnCount());
+      save_to(o, no_tr, h.NsCount());
+      save_to(o, no_tr, h.ArCount());
+   }
 }

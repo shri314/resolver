@@ -37,6 +37,7 @@ void basic_io(int argc, char** argv)
 #include "raw_dump.h"
 
 #include "dns/header.h"
+#include "dns/question.h"
 
 void basic_dns(int argc, char** argv)
 {

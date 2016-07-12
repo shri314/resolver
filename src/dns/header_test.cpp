@@ -312,7 +312,13 @@ BOOST_AUTO_TEST_CASE(dns_header_t_save_to)
          {
             std::vector<uint8_t> store;
 
-            BOOST_CHECK_NO_THROW( pH->save_to( std::back_inserter(store) ) ); // TEST
+            {
+               auto&& o = std::back_inserter(store);
+
+               dns::name_offset_tracker_t no_tr;
+
+               BOOST_CHECK_NO_THROW(save_to(o, no_tr, *pH));   // TEST
+            }
 
             BOOST_CHECK_EQUAL(OctRep(store), OctRep(Datum.expected_raw_data));
 
@@ -583,7 +589,13 @@ BOOST_AUTO_TEST_CASE(dns_header_t_load_from)
 
             std::vector<uint8_t> store;
 
-            BOOST_CHECK_NO_THROW( pH->save_to( std::back_inserter(store) ) );
+            {
+               auto&& o = std::back_inserter(store);
+
+               dns::name_offset_tracker_t no_tr;
+
+               BOOST_CHECK_NO_THROW(save_to(o, no_tr, *pH));
+            }
 
             BOOST_CHECK_EQUAL(OctRep(store), OctRep(Datum.input_raw_data.substr(0, Datum.expected_distance)));
 
