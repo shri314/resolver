@@ -26,10 +26,15 @@ namespace dns
             return i->second;
          }
 
+         uint16_t CurrentOffset() const
+         {
+            return m_offset;
+         }
+
          void Add(const std::string& name)
          {
-            m_name2offset[name] = m_offset;
-            m_offset2name[m_offset] = name;
+            m_name2offset[name] = CurrentOffset();
+            m_offset2name[CurrentOffset()] = name;
          }
 
          void IncrementOffset()

@@ -5,6 +5,7 @@
 
 #include "dns/rr_type.h"
 #include "dns/rr_class.h"
+#include "dns/label_list.h"
 
 #include "dns/exception/bad_data_stream.h"
 
@@ -48,14 +49,6 @@ namespace dns
             return os << "{ QName=" << rhs.QName() << ", QType=" << rhs.QType() << ", QClass=" << rhs.QClass() << " }";
          }
 
-         template<class OutputIterator>
-         OutputIterator save_to(OutputIterator o)
-         {
-            // split the qname into domains.
-            // emit { number, label } ... null - lookup m_labels to emit offsets, also store offsets just emitted.
-            return o;
-         }
-
          template<class InputIterator>
          InputIterator load_from(InputIterator cur_pos, InputIterator end)
          {
@@ -75,4 +68,12 @@ namespace dns
          rr_type_t m_qtype = rr_type_t::rec_a;
          rr_class_t m_qclass = rr_class_t::internet;
    };
+
+   template<class OutputIterator>
+   void save_to(OutputIterator& o, name_offset_tracker_t& no_tr, const question_t& q)
+   {
+      save_to(o, no_tr, label_list_t{q.QName()});
+      save_to(o, no_tr, static_cast<uint16_t>(q.QType()));
+      save_to(o, no_tr, static_cast<uint16_t>(q.QClass()));
+   }
 }
