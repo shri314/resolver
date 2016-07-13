@@ -1,5 +1,5 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE Dns_test
+#define BOOST_TEST_MODULE header_test
 #include <boost/test/unit_test.hpp>
 
 #include "dns/header.h"
@@ -109,7 +109,7 @@ exception_info_t exception_info()
 }
 
 
-BOOST_AUTO_TEST_CASE(dns_header_t_save_to)
+BOOST_AUTO_TEST_CASE(dns_save_to)
 {
    struct
    {
@@ -329,7 +329,7 @@ BOOST_AUTO_TEST_CASE(dns_header_t_save_to)
 }
 
 
-BOOST_AUTO_TEST_CASE(dns_header_t_load_from)
+BOOST_AUTO_TEST_CASE(dns_load_from)
 {
    struct
    {
