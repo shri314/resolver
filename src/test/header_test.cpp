@@ -70,7 +70,7 @@ struct exception_info_t
          BOOST_CHECK_EQUAL(e.what(), str);
 
          /*
-         if(auto f = dynamic_cast<const dns::bad_name*>(&e))
+         if(auto f = dynamic_cast<const dns::exception::bad_name*>(&e))
          {
             BOOST_CHECK_EQUAL(f->code(), code);
             return true;
@@ -84,7 +84,7 @@ struct exception_info_t
          }
 
          /*
-         if(auto f = dynamic_cast<const dns::bad_ptr_offset*>(&e))
+         if(auto f = dynamic_cast<const dns::exception::bad_ptr_offset*>(&e))
          {
             BOOST_CHECK_EQUAL(f->code(), code);
             return true;

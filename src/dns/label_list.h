@@ -3,9 +3,11 @@
 #include <ostream>
 #include <string>
 
+#include "dns/name_offset_tracker.h"
 #include "dns/exception/bad_data_stream.h"
 #include "dns/exception/bad_ptr_offset.h"
 #include "dns/exception/bad_name.h"
+#include "dns/bin_serialize.h"
 
 namespace dns
 {
@@ -29,7 +31,7 @@ namespace dns
 
          friend std::ostream& operator<<(std::ostream& os, const label_list_t& rhs)
          {
-            return os << "{ Name=" << rhs.Name() << " }";
+            return os << "[" << rhs.Name() << "]";
          }
 
          template<class InputIterator>

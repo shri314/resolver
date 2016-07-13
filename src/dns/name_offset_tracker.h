@@ -8,6 +8,11 @@ namespace dns
    class name_offset_tracker_t
    {
       public:
+         name_offset_tracker_t(uint16_t offset = 0)
+            : m_offset(offset)
+         {
+         }
+
          std::string NameAt(uint16_t offset) const
          {
             auto&& i = m_offset2name.find(offset);
