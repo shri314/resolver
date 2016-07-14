@@ -1,7 +1,9 @@
 #pragma once
 
+#include <utility>
 #include <string>
-#include <map>
+#include <experimental/optional>
+#include <boost/bimap.hpp>
 
 namespace dns
 {
@@ -9,47 +11,55 @@ namespace dns
    {
       public:
          name_offset_tracker_t(uint16_t offset = 0)
-            : m_offset(offset)
+            : m_current_offset(offset)
          {
          }
 
-         std::string NameAt(uint16_t offset) const
+         template<class T>
+         auto find_offset(T&& k) const
          {
-            auto&& i = m_offset2name.find(offset);
-            if(i != m_offset2name.end())
-               return i->second;
+            auto&& i = m_name_offset_assoc.left.find(std::forward<T>(k));
 
-            return std::string();
+            if(i != m_name_offset_assoc.left.end())
+               return std::experimental::optional < decltype(i->second) > {i->second};
+            else
+               return std::experimental::optional < decltype(i->second) > {};
          }
 
-         uint16_t OffsetOf(const std::string& name) const
+         template<class T>
+         auto find_name(T&& k) const
          {
-            auto&& i = m_name2offset.find(name);
-            if(i != m_name2offset.end())
-               return i->second;
+            auto&& i = m_name_offset_assoc.right.find(std::forward<T>(k));
 
-            return 0;
+            if(i != m_name_offset_assoc.right.end())
+               return std::experimental::optional < decltype(i->second) > {i->second};
+            else
+               return std::experimental::optional < decltype(i->second) > {};
          }
 
-         uint16_t CurrentOffset() const
+         auto current_offset() const
          {
-            return m_offset;
+            return m_current_offset;
          }
 
-         void Add(const std::string& name)
+         void increment_offset(int amount = 1)
          {
-            m_name2offset[name] = CurrentOffset();
-            m_offset2name[CurrentOffset()] = name;
+            m_current_offset += amount;
          }
 
-         void IncrementOffset()
+         template<class T>
+         void save_offset_of(T&& k)
          {
-            ++m_offset;
+            m_name_offset_assoc.insert(
+               decltype(m_name_offset_assoc)::value_type(
+                  std::forward<T>(k),
+                  m_current_offset
+               )
+            );
          }
 
       private:
-         uint16_t m_offset = 0;
-         std::map<uint16_t, std::string> m_offset2name;
-         std::map<std::string, uint16_t> m_name2offset;
+         uint16_t m_current_offset = 0;
+         boost::bimap< std::string, uint16_t > m_name_offset_assoc;
    };
 }

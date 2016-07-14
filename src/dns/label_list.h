@@ -8,6 +8,7 @@
 #include "dns/exception/bad_ptr_offset.h"
 #include "dns/exception/bad_name.h"
 #include "dns/bin_serialize.h"
+#include "split2_at.h"
 
 namespace dns
 {
@@ -53,22 +54,71 @@ namespace dns
    };
 
    template<class OutputIterator>
-   void save_to(OutputIterator& o, name_offset_tracker_t& no_tr, const label_list_t& ll)
+   void save_to(OutputIterator& o, name_offset_tracker_t& tr, const label_list_t& ll)
+   {
+      auto&& range = ll.Name();
+
+      while(true)
+      {
+         if(range.empty())
+         {
+            save_to(o, tr, static_cast<uint8_t>(0));
+            break;
+         }
+
+         if(auto && p_offset = tr.find_offset(range))
+         {
+            if(*p_offset > 0x3FFF)
+               throw exception::bad_ptr_offset("offset too long", 1);
+
+            save_to(o, tr, static_cast<uint8_t>((*p_offset >> 8) | 0xC0));
+            save_to(o, tr, static_cast<uint8_t>(*p_offset & 0xFF));
+            break;
+         }
+      
+         {
+            tr.save_offset_of(range);
+
+            auto&& split_parts = split2_at(range, '.');
+
+            auto&& sz = split_parts.first.size();
+
+            if(sz > 63)
+               throw exception::bad_name("length too long", 1);
+
+            if(sz == 0)
+               throw exception::bad_name("wrong format", 1);
+
+            save_to(o, tr, static_cast<uint8_t>(sz));
+
+            for(auto x : split_parts.first)
+            {
+               save_to(o, tr, static_cast<uint8_t>(x));
+            }
+
+            range = std::move(split_parts.second);
+         }
+      }
+   }
+
+   /*
+   template<class OutputIterator>
+   void save_to_1(OutputIterator& o, name_offset_tracker_t& tr, const label_list_t& ll)
    {
       auto&& name = ll.Name();
       auto&& begin = name.begin();
       auto&& end = name.end();
-      auto&& start_offset = no_tr.CurrentOffset();
+      auto&& start_offset = tr.current_offset();
 
       while(true)
       {
          auto&& sub_name = std::string(begin, end);
-         auto&& ptr_offset = no_tr.OffsetOf(sub_name);
+         auto&& ptr_offset = tr.find_offset(sub_name);
 
-         if(ptr_offset > 0x3FFF)
+         if(ptr_offset && *ptr_offset > 0x3FFF)
             throw exception::bad_ptr_offset("offset too long", 1);
 
-         auto term_space = ptr_offset > 0 ? 2 : 1;
+         auto term_space = ptr_offset ? 2 : 1;
 
          auto pos = std::find(begin, end, '.');
 
@@ -77,7 +127,7 @@ namespace dns
          if(sz > 63)
             throw exception::bad_name("length too long", 1);
 
-         if(no_tr.CurrentOffset() - start_offset + sz + term_space >= 256)
+         if(tr.current_offset() - start_offset + sz + term_space >= 256)
             throw exception::bad_name("length too long", 2);
 
          if(sz == 0) // we seem to have hit the end
@@ -89,14 +139,14 @@ namespace dns
          }
          else
          {
-            if(ptr_offset == 0)
-               no_tr.Add(sub_name);
+            if(!ptr_offset)
+               tr.save_offset_of(sub_name);
 
-            save_to(o, no_tr, static_cast<uint8_t>(sz));
+            save_to(o, tr, static_cast<uint8_t>(sz));
 
-            std::for_each(begin, pos, [&o, &no_tr](uint8_t x)
+            std::for_each(begin, pos, [&o, &tr](uint8_t x)
             {
-               save_to(o, no_tr, x);
+               save_to(o, tr, x);
             });
 
             begin = (pos == end) ? end : (pos + 1);
@@ -109,18 +159,19 @@ namespace dns
       {
          // put the null terminator or the end ptr
 
-         if(no_tr.CurrentOffset() - start_offset + term_space >= 256)
+         if(tr.current_offset() - start_offset + term_space >= 256)
             throw exception::bad_name("length too long", 3);
 
          if(ptr_offset > 0)
          {
-            save_to(o, no_tr, static_cast<uint8_t>((ptr_offset >> 8) | 0xC0));
-            save_to(o, no_tr, static_cast<uint8_t>(ptr_offset & 0xFF));
+            save_to(o, tr, static_cast<uint8_t>((ptr_offset >> 8) | 0xC0));
+            save_to(o, tr, static_cast<uint8_t>(ptr_offset & 0xFF));
          }
          else
          {
-            save_to(o, no_tr, static_cast<uint8_t>(0));
+            save_to(o, tr, static_cast<uint8_t>(0));
          }
       }
    }
+   */
 }

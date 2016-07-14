@@ -11,7 +11,7 @@ namespace dns
    void save_to(OutputIterator& o, name_offset_tracker_t& no_tr, uint8_t x)
    {
       *o++ = x;
-      no_tr.IncrementOffset();
+      no_tr.increment_offset();
    }
 
    template<class OutputIterator>
