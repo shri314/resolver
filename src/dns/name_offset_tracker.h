@@ -17,18 +17,18 @@ namespace dns
          {
             auto&& i = m_offset2name.find(offset);
             if(i != m_offset2name.end())
-               return std::string();
+               return i->second;
 
-            return i->second;
+            return std::string();
          }
 
          uint16_t OffsetOf(const std::string& name) const
          {
             auto&& i = m_name2offset.find(name);
             if(i != m_name2offset.end())
-               return 0;
+               return i->second;
 
-            return i->second;
+            return 0;
          }
 
          uint16_t CurrentOffset() const

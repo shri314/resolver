@@ -56,19 +56,20 @@ namespace dns
    void save_to(OutputIterator& o, name_offset_tracker_t& no_tr, const label_list_t& ll)
    {
       auto&& name = ll.Name();
-
-      const auto start_offset = no_tr.CurrentOffset();
-      const auto ptr_offset = no_tr.OffsetOf(name);
-
-      if(ptr_offset > 0x3FFF)
-         throw exception::bad_ptr_offset("offset too long", 1);
-
-      auto begin = name.begin();
-      auto end = name.end();
-      auto term_space = ptr_offset > 0 ? 2 : 1;
+      auto&& begin = name.begin();
+      auto&& end = name.end();
+      auto&& start_offset = no_tr.CurrentOffset();
 
       while(true)
       {
+         auto&& sub_name = std::string(begin, end);
+         auto&& ptr_offset = no_tr.OffsetOf(sub_name);
+
+         if(ptr_offset > 0x3FFF)
+            throw exception::bad_ptr_offset("offset too long", 1);
+
+         auto term_space = ptr_offset > 0 ? 2 : 1;
+
          auto pos = std::find(begin, end, '.');
 
          auto sz = pos - begin;
@@ -88,6 +89,9 @@ namespace dns
          }
          else
          {
+            if(ptr_offset == 0)
+               no_tr.Add(sub_name);
+
             save_to(o, no_tr, static_cast<uint8_t>(sz));
 
             std::for_each(begin, pos, [&o, &no_tr](uint8_t x)
@@ -95,7 +99,7 @@ namespace dns
                save_to(o, no_tr, x);
             });
 
-            begin = (pos == end) ? pos : (pos + 1);
+            begin = (pos == end) ? end : (pos + 1);
 
             if(begin == end)
                break;
