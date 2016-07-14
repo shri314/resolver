@@ -110,8 +110,9 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
    struct
    {
       std::string test_context;
+      uint16_t input_prefill_offset;
+      std::string input_prefill_name;
       std::string input_name;
-      uint16_t input_ptr_offset;
 
       exception_info_t expected_exception;
       std::string expected_raw_data;
@@ -121,8 +122,9 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
       /*
       {
          TEST_CONTEXT("empty"),
-         "",
          0,
+         "",
+         "",
 
          exception_info(),
          "\0"s,
@@ -130,8 +132,9 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
 
       {
          TEST_CONTEXT("empty + ptr_offset"), // NONSENSE TEST
-         "",
          45,
+         "",
+         "",
 
          exception_info(),
          "\0"s,
@@ -139,8 +142,9 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
 
       {
          TEST_CONTEXT("empty + ptr_offset which fits"), // NONSENSE TEST
-         "",
          16383,
+         "",
+         "",
 
          exception_info(),
          "\0"s,
@@ -148,8 +152,9 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
 
       {
          TEST_CONTEXT("simple case"),
-         "www.yahoo.com",
          0,
+         "",
+         "www.yahoo.com",
 
          exception_info(),
          "\3www\5yahoo\3com\0"s,
@@ -158,11 +163,12 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
 
       {
          TEST_CONTEXT("simple case + ptr_offset"),
-         "www.yahoo.com",
          45,
+         "www.yahoo.com",
+         "www.yahoo.com",
 
          exception_info(),
-         "\3www\5yahoo\3com\300\55"s,
+         "\3www\5yahoo\3com\0\300\55"s,
       },
 
       /*
@@ -295,28 +301,47 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
 
          auto&& o = std::back_inserter(store);
 
-         dns::name_offset_tracker_t tr{Datum.input_ptr_offset};
+         dns::name_offset_tracker_t tr{Datum.input_prefill_offset};
 
          {
-            auto pQN = make_my_unique<dns::label_list_t>();    // TEST OBJECT
+            auto&& input = Datum.input_prefill_name;
 
-            BOOST_CHECK_NO_THROW(pQN->Name(Datum.input_name)); // THE TEST
+            if(!input.empty())
+            {
+               auto pQN = make_my_unique<dns::label_list_t>();    // TEST OBJECT
 
-            BOOST_CHECK_EQUAL(pQN->Name(), Datum.input_name);
+               BOOST_CHECK_NO_THROW(pQN->Name(input)); // THE TEST
 
-            BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), "[" + Datum.input_name + "]");
+               BOOST_CHECK_EQUAL(pQN->Name(), input);
+
+               BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), "[" + input + "]");
+
+               BOOST_CHECK_NO_THROW(dns::save_to(o, tr, *pQN));   // THE TEST (PART 1)
+            }
+         }
+
+         {
+            auto&& input = Datum.input_name;
+
+            auto pQN = make_my_unique<dns::label_list_t>();    // NEW TEST OBJECT
+
+            BOOST_CHECK_NO_THROW(pQN->Name(input)); // NEW THE TEST
+
+            BOOST_CHECK_EQUAL(pQN->Name(), input);
+
+            BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), "[" + input + "]");
 
             if(Datum.expected_exception)
             {
-               BOOST_CHECK_EXCEPTION(dns::save_to(o, tr, *pQN), std::exception, Datum.expected_exception);   // THE TEST
+               BOOST_CHECK_EXCEPTION(dns::save_to(o, tr, *pQN), std::exception, Datum.expected_exception);   // THE TEST (PART 2)
             }
             else
             {
-               BOOST_CHECK_NO_THROW(dns::save_to(o, tr, *pQN));   // THE TEST
-
-               BOOST_CHECK_EQUAL(OctRep(store), OctRep(Datum.expected_raw_data));
+               BOOST_CHECK_NO_THROW(dns::save_to(o, tr, *pQN));   // THE TEST (PART 2)
             }
          }
+
+         BOOST_CHECK_EQUAL(OctRep(store), OctRep(Datum.expected_raw_data));
       }
    }
 }
