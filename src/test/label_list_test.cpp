@@ -365,15 +365,21 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
    struct
    {
       std::string test_context;
+      uint16_t input_initial_offset;
       std::string input_raw_data;
 
-      exception_info_t expected_exception;
-      std::string expected_name;
-      uint16_t input_initial_offset;
-      int expected_distance;
+      struct expectation_info
+      {
+         exception_info_t exception;
+         std::string name;
+         int distance;
+      };
+
+      std::vector<expectation_info> expected;
    }
    TestData[] =
    {
+#if 0
       {
          TEST_CONTEXT("empty"),
          "\0"s,
@@ -403,17 +409,19 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
          45,
          2,
       },
+#endif
 
       {
          TEST_CONTEXT("simple case + ptr_offset"),
-         "\3www\5yahoo\3com\300\55"s,
+         45, "\3www\5yahoo\3com\0\300\55"s,
 
-         exception_info(),
-         "www.yahoo.com",
-         45,
-         16,
+         {
+            { exception_info(), "www.yahoo.com", 15, },
+            { exception_info(), "www.yahoo.com", 17, },
+         },
       },
 
+#if 0
       {
          TEST_CONTEXT("consumption not beyond null"),
          "\3www\5yahoo\3com\0ABCDEFGHIJKLMNOPQRSTUVWXYZ"s,
@@ -536,7 +544,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
          0,
          15,
       },
-
+#endif
    };
 
    /////////////////////////////////////////////////////
@@ -553,31 +561,27 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
 
          auto&& b = Datum.input_raw_data.begin();
          auto&& e = Datum.input_raw_data.end();
-         dns::name_offset_tracker_t tr{Datum.input_initial_offset};
+         auto&& tr = dns::name_offset_tracker_t{Datum.input_initial_offset};
 
-         if(Datum.expected_exception)
+         for(auto&& expected : Datum.expected)
          {
-            BOOST_CHECK_EXCEPTION(dns::load_from(tr, b, e, *pQN), std::exception, Datum.expected_exception); // THE TEST
-
-            BOOST_CHECK(0 <= std::distance(Datum.input_raw_data.begin(), b) && std::distance(Datum.input_raw_data.begin(), b) <= Datum.expected_distance);
-         }
-         else
-         {
-            BOOST_CHECK_NO_THROW(dns::load_from(tr, b, e, *pQN)); // THE TEST
-
-            BOOST_CHECK_EQUAL(std::distance(Datum.input_raw_data.begin(), b), Datum.expected_distance);
-
-            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(pQN->Name(), Datum.expected_name));
-
-            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), "[" + Datum.expected_name + "]"));
-
+            if(expected.exception)
             {
-               auto&& temp_store = std::string{};
-               auto&& temp_o = std::back_inserter(temp_store);
-               auto&& temp_tr = dns::name_offset_tracker_t{Datum.input_initial_offset};
+               BOOST_CHECK_EXCEPTION(dns::load_from(tr, b, e, *pQN), std::exception, expected.exception); // THE TEST
 
-               BOOST_CHECK_NO_THROW(dns::save_to(tr, temp_o, *pQN));
-               BOOST_CHECK_EQUAL(OctRep(temp_store), OctRep(Datum.input_raw_data.substr(0, Datum.expected_distance)));
+               BOOST_CHECK(0 <= std::distance(Datum.input_raw_data.begin(), b) && std::distance(Datum.input_raw_data.begin(), b) <= expected.distance);
+
+               break;
+            }
+            else
+            {
+               BOOST_CHECK_NO_THROW(dns::load_from(tr, b, e, *pQN)); // THE TEST
+
+               BOOST_CHECK_EQUAL(std::distance(Datum.input_raw_data.begin(), b), expected.distance);
+
+               BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(pQN->Name(), expected.name));
+
+               BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), "[" + expected.name + "]"));
             }
          }
       }

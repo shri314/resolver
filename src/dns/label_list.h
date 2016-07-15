@@ -93,58 +93,62 @@ namespace dns
    template<class InputIterator>
    void load_from(name_offset_tracker_t& tr, InputIterator& i, InputIterator end, label_list_t& ll)
    {
-      std::string buffer;
-      buffer.reserve(256);
-
-      uint8_t rem_labelchars = 0;
-      bool term_found = false;
-      std::experimental::optional<uint16_t> ptr_offset;
+      auto&& term_found = false;
+      auto&& rem_labelchars = uint8_t{0};
+      auto&& ptr_offset = std::experimental::optional<uint16_t> {};
+      auto&& name_parts = std::vector<std::pair<uint16_t, std::string>> {};
 
       while(i != end && !term_found)
       {
-         uint8_t x;
-         load_from(tr, i, end, x);
-
          if(ptr_offset)
          {
-            *ptr_offset |= static_cast<uint16_t>(x); // accumulate the second byte into ptr_offset LSB
+            // CASE I: read and accumulate the second byte into ptr_offset LSB
 
-            if(!buffer.empty())
-               buffer.push_back('.');
+            uint8_t of;
+            load_from(tr, i, end, of);
 
-            if( auto&& f = tr.find_name( *ptr_offset ) )
-               buffer.append( *f );
-            else
-               throw dns::exception::bad_data_stream("unseen offset", 1);
+            *ptr_offset |= static_cast<uint16_t>(of);
 
-            term_found = true;
-         }
-         else if(rem_labelchars == 0)
-         {
-            uint8_t cx = static_cast<uint8_t>(x); // usually is the size of label, or null, or ptr_offset byte
-
-            if(cx == 0)
+            if(auto && f = tr.find_name(*ptr_offset))
             {
                term_found = true;
             }
-            else if(cx > 63)
+            else
+               throw dns::exception::bad_data_stream("unseen offset", 1);
+         }
+         else if(rem_labelchars == 0)
+         {
+            // CASE II: expected is a number that is the size of label, or null, or ptr_offset byte
+
+            uint8_t sz;
+            load_from(tr, i, end, sz);
+
+            if(sz == 0)
             {
-               if((cx & 0xC0) == 0xC0)
-                  ptr_offset = static_cast<uint16_t>(x << 8); // accumulate the first byte into ptr_offset MSB
+               term_found = true;
+            }
+            else if(sz > 63)
+            {
+               if((sz & 0xC0) == 0xC0)
+                  ptr_offset = static_cast<uint16_t>((sz & ~0xC0) << 8); // accumulate the first byte into ptr_offset MSB
                else
                   throw dns::exception::bad_data_stream("length too long", 2);
             }
             else
             {
-               if(!buffer.empty())
-                  buffer.push_back('.');
-
-               rem_labelchars = cx;
+               name_parts.emplace_back( tr.current_offset(), "" );
+               name_parts.back().second.reserve(sz);
+               rem_labelchars = sz;
             }
          }
          else
          {
-            buffer.push_back(x);
+            // CASE III: expected is a set of characters of a namepart (rem_labelchars chars long)
+
+            uint8_t ch;
+            load_from(tr, i, end, ch);
+
+            name_parts.back().second.push_back(ch);
             --rem_labelchars;
          }
       }
@@ -152,6 +156,12 @@ namespace dns
       if(!term_found)
          throw dns::exception::bad_data_stream("truncated", 2);
 
-      ll.Name(buffer);
+      std::string last_entry;
+      std::for_each( name_parts.rbegin(), name_parts.rend(), [&last_entry, &tr](auto& entry) {
+         last_entry = entry.second += (last_entry.empty() ? "" : ".") + last_entry;
+         tr.insert( entry.first, entry.second );
+      });
+
+      ll.Name(last_entry);
    }
 }

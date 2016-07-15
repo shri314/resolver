@@ -4,6 +4,9 @@ SCRIPT_DIR=$(CDPATH= cd "$(dirname "$BASH_SOURCE")" && pwd);
 
 source "$SCRIPT_DIR/../../.env"
 
+CDPATH=
+cd $SCRIPT_DIR
+
 (
    set -e
 
@@ -29,3 +32,27 @@ source "$SCRIPT_DIR/../../.env"
 
 ) || exit 1
 
+(
+   set -e
+
+   PACKAGE=cmake-3.6.0
+
+   if [ ! -f .${PACKAGE}.done ]
+   then
+      wget --no-check-certificate https://cmake.org/files/v3.6/cmake-3.6.0.tar.gz
+      rm -rf ${PACKAGE}
+      tar xzf ${PACKAGE}.tar.gz
+
+      (
+         set -e
+         cd ${PACKAGE}
+         ./configure --prefix="$DEV_PREFIX/${PACKAGE}"
+         make -j10
+         make install
+
+      ) || exit 1
+
+      touch .${PACKAGE}.done
+   fi
+
+) || exit 1

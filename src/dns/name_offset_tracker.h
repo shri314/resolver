@@ -58,6 +58,17 @@ namespace dns
             );
          }
 
+         template<class T, class U>
+         void insert(T&& k, U&& u)
+         {
+            m_name_offset_assoc.insert(
+               decltype(m_name_offset_assoc)::value_type(
+                  std::forward<U>(u),
+                  std::forward<T>(k)
+               )
+            );
+         }
+
       private:
          uint16_t m_current_offset = 0;
          boost::bimap< std::string, uint16_t > m_name_offset_assoc;
