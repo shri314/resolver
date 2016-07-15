@@ -7,6 +7,8 @@
 #include "test_context.h"
 #include "raw_dump.h"
 
+#include <boost/algorithm/string.hpp>
+
 #include <string>
 #include <sstream>
 #include <iostream>
@@ -315,9 +317,9 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
             {
                auto&& o = std::back_inserter(store);
 
-               dns::name_offset_tracker_t no_tr;
+               dns::name_offset_tracker_t tr;
 
-               BOOST_CHECK_NO_THROW(save_to(o, no_tr, *pH));   // TEST
+               BOOST_CHECK_NO_THROW(save_to(tr, o, *pH));   // TEST
             }
 
             BOOST_CHECK_EQUAL(OctRep(store), OctRep(Datum.expected_raw_data));
@@ -547,6 +549,9 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
    {
       BOOST_TEST_CONTEXT(Datum.test_context)
       {
+         if( boost::algorithm::contains(Datum.test_context, "GDB:") )
+            BOOST_TEST_MESSAGE( getpid() ), sleep(30);
+
          auto pH = make_my_unique<dns::header_t>(); // TEST OBJECT
 
          /// Set
@@ -574,7 +579,9 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
             auto&& b = Datum.input_raw_data.begin();
             auto&& e = Datum.input_raw_data.end();
 
-            BOOST_CHECK_EXCEPTION(b = pH->load_from(b, e), std::exception, Datum.expected_exception); // THE TEST
+            dns::name_offset_tracker_t tr;
+
+            BOOST_CHECK_EXCEPTION( dns::load_from(tr, b, e, *pH), std::exception, Datum.expected_exception); // THE TEST
 
             BOOST_CHECK(0 <= std::distance(Datum.input_raw_data.begin(), b) && std::distance(Datum.input_raw_data.begin(), b) <= Datum.expected_distance);
          }
@@ -583,7 +590,9 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
             auto&& b = Datum.input_raw_data.begin();
             auto&& e = Datum.input_raw_data.end();
 
-            BOOST_CHECK_NO_THROW(b = pH->load_from(b, e)); // THE TEST
+            dns::name_offset_tracker_t tr;
+
+            BOOST_CHECK_NO_THROW( dns::load_from(tr, b, e, *pH)); // THE TEST
 
             BOOST_CHECK_EQUAL(std::distance(Datum.input_raw_data.begin(), b), Datum.expected_distance);
 
@@ -592,9 +601,9 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
             {
                auto&& o = std::back_inserter(store);
 
-               dns::name_offset_tracker_t no_tr;
+               dns::name_offset_tracker_t tr;
 
-               BOOST_CHECK_NO_THROW(save_to(o, no_tr, *pH));
+               BOOST_CHECK_NO_THROW(save_to(tr, o, *pH));
             }
 
             BOOST_CHECK_EQUAL(OctRep(store), OctRep(Datum.input_raw_data.substr(0, Datum.expected_distance)));

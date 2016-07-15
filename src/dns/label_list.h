@@ -54,7 +54,7 @@ namespace dns
    };
 
    template<class OutputIterator>
-   void save_to(OutputIterator& o, name_offset_tracker_t& tr, const label_list_t& ll)
+   void save_to(name_offset_tracker_t& tr, OutputIterator& o, const label_list_t& ll)
    {
       auto&& range = ll.Name();
 
@@ -65,7 +65,7 @@ namespace dns
       {
          if(range.empty())
          {
-            save_to(o, tr, static_cast<uint8_t>(0));
+            save_to(tr, o, static_cast<uint8_t>(0));
             break;
          }
 
@@ -74,8 +74,8 @@ namespace dns
             if(*p_offset > 0x3FFF)
                throw exception::bad_ptr_offset("offset too long", 1);
 
-            save_to(o, tr, static_cast<uint8_t>((*p_offset >> 8) | 0xC0));
-            save_to(o, tr, static_cast<uint8_t>(*p_offset & 0xFF));
+            save_to(tr, o, static_cast<uint8_t>((*p_offset >> 8) | 0xC0));
+            save_to(tr, o, static_cast<uint8_t>(*p_offset & 0xFF));
             break;
          }
       
@@ -92,11 +92,11 @@ namespace dns
             if(sz == 0)
                throw exception::bad_name("wrong format", 1);
 
-            save_to(o, tr, static_cast<uint8_t>(sz));
+            save_to(tr, o, static_cast<uint8_t>(sz));
 
             for(auto x : split_parts.first)
             {
-               save_to(o, tr, static_cast<uint8_t>(x));
+               save_to(tr, o, static_cast<uint8_t>(x));
             }
 
             range = std::move(split_parts.second);

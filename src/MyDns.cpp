@@ -65,7 +65,10 @@ void basic_dns(int argc, char** argv)
          std::cout << OctRep(std::string(recv_buffer.begin(), recv_buffer.begin() + sz_rx)) << "\n";
 
          dns::header_t h;
-         h.load_from(recv_buffer.begin(), recv_buffer.end());
+         dns::name_offset_tracker_t tr;
+         auto&& b = recv_buffer.begin();
+         auto&& e = recv_buffer.end();
+         dns::load_from(tr, b, e, h);
          std::cout << h << "\n";
       }
    };
@@ -111,7 +114,10 @@ void basic_dns(int argc, char** argv)
             write_buffer.push_back(c);
 
          dns::header_t h;
-         h.load_from(write_buffer.begin() + 2, write_buffer.end());
+         dns::name_offset_tracker_t tr;
+         auto&& b = write_buffer.begin() + 2;
+         auto&& e = write_buffer.end();
+         dns::load_from(tr, b, e, h);
          std::cout << h << "\n";
 
          write_buffer[0] = ((write_buffer.size() - 2) & 0xFF00) >> 8;

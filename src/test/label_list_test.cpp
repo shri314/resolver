@@ -330,7 +330,7 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
 
                BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), "[" + input + "]");
 
-               BOOST_CHECK_NO_THROW(dns::save_to(o, tr, *pQN));   // THE TEST (PART 1)
+               BOOST_CHECK_NO_THROW(dns::save_to(tr, o, *pQN));   // THE TEST (PART 1)
             }
          }
 
@@ -347,11 +347,11 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
 
             if(Datum.expected_exception)
             {
-               BOOST_CHECK_EXCEPTION(dns::save_to(o, tr, *pQN), std::exception, Datum.expected_exception);   // THE TEST (PART 2)
+               BOOST_CHECK_EXCEPTION(dns::save_to(tr, o, *pQN), std::exception, Datum.expected_exception);   // THE TEST (PART 2)
             }
             else
             {
-               BOOST_CHECK_NO_THROW(dns::save_to(o, tr, *pQN));   // THE TEST (PART 2)
+               BOOST_CHECK_NO_THROW(dns::save_to(tr, o, *pQN));   // THE TEST (PART 2)
             }
 
             BOOST_CHECK_EQUAL(OctRep(store), OctRep(Datum.expected_raw_data));
@@ -360,7 +360,254 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
    }
 }
 
-
+#if 0
 BOOST_AUTO_TEST_CASE(dns_load_from)
 {
+   struct
+   {
+      std::string test_context;
+      std::string input_raw_data;
+
+      exception_info_t expected_exception;
+      std::string expected_name;
+      uint16_t expected_ptr_offset;
+      std::string expected_stream;
+      int expected_distance;
+   }
+   TestData[] =
+   {
+      {
+         TEST_CONTEXT("empty"),
+         "\0"s,
+
+         exception_info(),
+         "",
+         0,
+         "[]",
+         1,
+      },
+
+      {
+         TEST_CONTEXT("empty + ptr_offset"),
+         "\300\55"s,
+
+         exception_info(),
+         "",
+         45,
+         "[]->[45]",
+         2,
+      },
+
+      {
+         TEST_CONTEXT("simple case"),
+         "\3www\5yahoo\3com\0"s,
+
+         exception_info(),
+         "www.yahoo.com",
+         0,
+         "[www.yahoo.com]",
+         15,
+      },
+
+      {
+         TEST_CONTEXT("simple case + ptr_offset"),
+         "\3www\5yahoo\3com\300\55"s,
+
+         exception_info(),
+         "www.yahoo.com",
+         45,
+         "[www.yahoo.com]->[45]",
+         16,
+      },
+
+      {
+         TEST_CONTEXT("consumption not beyond null"),
+         "\3www\5yahoo\3com\0ABCDEFGHIJKLMNOPQRSTUVWXYZ"s,
+
+         exception_info(),
+         "www.yahoo.com",
+         0,
+         "[www.yahoo.com]",
+         15,
+      },
+
+      {
+         TEST_CONTEXT("consumption not beyond ptr_offset"),
+         "\3www\5yahoo\3com\300\55ZBCDEFGHIJKLMNOPQRSTUVWXYZ"s,
+
+         exception_info(),
+         "www.yahoo.com",
+         45,
+         "[www.yahoo.com]->[45]",
+         16,
+      },
+
+      {
+         TEST_CONTEXT("within exactly supported length of 255"),
+         "\77"s + std::string(077, 'w') +
+         "\77"s + std::string(077, 'a') +
+         "\77"s + std::string(077, 'b') +
+         "\75"s + std::string(075, 'c') + "\0ABCD"s,
+
+         exception_info(),
+         std::string(077, 'w') + '.' +
+         std::string(077, 'a') + '.' +
+         std::string(077, 'b') + '.' + std::string(075, 'c'),
+         0,
+         "[" + std::string(077, 'w') + '.' +
+         std::string(077, 'a') + '.' +
+         std::string(077, 'b') + '.' + std::string(075, 'c') + "]",
+         255,
+      },
+
+      {
+         TEST_CONTEXT("within exactly supported length of 255 + ptr_offset"),
+         "\77"s + std::string(077, 'w') +
+         "\77"s + std::string(077, 'a') +
+         "\77"s + std::string(077, 'b') +
+         "\74"s + std::string(074, 'c') + "\300\55ZABCD"s,
+
+         exception_info(),
+         std::string(077, 'w') + '.' +
+         std::string(077, 'a') + '.' +
+         std::string(077, 'b') + '.' + std::string(074, 'c'),
+         45,
+         "[" + std::string(077, 'w') + '.' +
+         std::string(077, 'a') + '.' +
+         std::string(077, 'b') + '.' + std::string(074, 'c') + "]->[45]",
+         255,
+      },
+
+      {
+         TEST_CONTEXT("bad length in data > 255"),
+         "\77"s + std::string(077, 'w') +
+         "\77"s + std::string(077, 'a') +
+         "\77"s + std::string(077, 'b') +
+         "\76"s + std::string(076, 'c') + "\0ABCD"s,
+
+         exception_info<dns::exception::bad_data_stream>("length too long"s, 1),
+         "",
+         0,
+         "",
+         255,
+      },
+
+      {
+         TEST_CONTEXT("bad length in data > 255 (with ptr_offset)"),
+         "\77"s + std::string(077, 'w') +
+         "\77"s + std::string(077, 'a') +
+         "\77"s + std::string(077, 'b') +
+         "\75"s + std::string(075, 'c') + "\300\55ABCD"s,
+
+         exception_info<dns::exception::bad_data_stream>("length too long"s, 1),
+         "",
+         0,
+         "",
+         255,
+      },
+
+      {
+         TEST_CONTEXT("bad length in data (first label > 63)"),
+         "\100www\5yahoo\3com\0ABCD"s,
+
+         exception_info<dns::exception::bad_data_stream>("length too long"s, 2),
+         "",
+         0,
+         "",
+         0,
+      },
+
+      {
+         TEST_CONTEXT("bad length in data (middle label > 63)"),
+         "\3www\100yahoo\3com\0ABCD"s,
+
+         exception_info<dns::exception::bad_data_stream>("length too long"s, 2),
+         "",
+         0,
+         "",
+         4,
+      },
+
+      {
+         TEST_CONTEXT("truncated data from middle of label"),
+         "\3www\5ya"s,
+         exception_info<dns::exception::bad_data_stream>("truncated"s, 2),
+         "",
+         0,
+         "",
+         7,
+      },
+
+      {
+         TEST_CONTEXT("truncated data (missing null)"),
+         "\3www\5yahoo\3com"s,
+         exception_info<dns::exception::bad_data_stream>("truncated"s, 2),
+         "",
+         0,
+         "",
+         14,
+      },
+
+      {
+         TEST_CONTEXT("truncated data (missing ptr_offset)"),
+         "\3www\5yahoo\3com\301"s,
+         exception_info<dns::exception::bad_data_stream>("truncated"s, 2),
+         "",
+         0,
+         "",
+         15,
+      },
+
+   };
+
+   /////////////////////////////////////////////////////
+
+   for(auto Datum : TestData)
+   {
+      BOOST_TEST_CONTEXT(Datum.test_context)
+      {
+         // Check sane test configuration
+         auto pQN = make_my_unique<dns::label_list_t>(); // TEST OBJECT
+
+         if(Datum.expected_exception)
+         {
+            auto&& b = Datum.input_raw_data.begin();
+            auto&& e = Datum.input_raw_data.end();
+
+            BOOST_CHECK_EXCEPTION(pQN->Load(b, e), std::exception, Datum.expected_exception); // THE TEST
+
+            BOOST_CHECK(0 <= std::distance(Datum.input_raw_data.begin(), b) && std::distance(Datum.input_raw_data.begin(), b) <= Datum.expected_distance);
+
+            decltype(pQN->Get()) res;
+            BOOST_CHECK_NO_THROW(res = pQN->Get());
+
+            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(res.first, initial_name));
+            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(res.second, 0));
+
+            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), initial_stream));
+
+            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(OctRep(pQN->Save()), OctRep(initial_raw_data)));
+         }
+         else
+         {
+            auto&& b = Datum.input_raw_data.begin();
+            auto&& e = Datum.input_raw_data.end();
+
+            BOOST_CHECK_NO_THROW(pQN->Load(b, e)); // THE TEST
+
+            BOOST_CHECK_EQUAL(std::distance(Datum.input_raw_data.begin(), b), Datum.expected_distance);
+
+            decltype(pQN->Get()) res;
+            BOOST_CHECK_NO_THROW(res = pQN->Get());
+
+            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(res.first, Datum.expected_name));
+            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(res.second, Datum.expected_ptr_offset));
+
+            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), Datum.expected_stream));
+
+            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(OctRep(pQN->Save()), OctRep(Datum.input_raw_data.substr(0, Datum.expected_distance))));
+         }
+      }
+   }
 }
+#endif

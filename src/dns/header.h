@@ -8,72 +8,11 @@
 #include "dns/name_offset_tracker.h"
 #include "dns/bin_serialize.h"
 
-#include "dns/exception/bad_data_stream.h"
-
 namespace dns
 {
    class header_t
    {
       public:
-         template<class InputIterator>
-         InputIterator load_from(InputIterator cur_pos, InputIterator end)
-         {
-            auto&& next = [&cur_pos, end]()
-            {
-               if(cur_pos != end)
-                  return static_cast<uint8_t>(*cur_pos++);
-
-               throw dns::exception::bad_data_stream("truncated", 1);
-            };
-
-            {
-               m_ID = static_cast<uint16_t>(next()) << 8;
-               m_ID |= static_cast<uint16_t>(next());
-            }
-
-            {
-               uint8_t v = static_cast<uint8_t>(next());
-
-               m_QR = (v & 0x80) == 0x80 ? true : false;
-               m_OpCode = static_cast<op_code_t>((v >> 3) & 0xF);
-               m_AA = (v & 0x04) == 0x04 ? true : false;
-               m_TC = (v & 0x02) == 0x02 ? true : false;
-               m_RD = (v & 0x01) == 0x01 ? true : false;
-            }
-
-            {
-               uint8_t v = static_cast<uint8_t>(next());
-
-               m_RA = (v & 0x80) == 0x80 ? true : false;
-               m_Res1 = (v & 0x40) == 0x40 ? true : false;
-               m_AD = (v & 0x20) == 0x20 ? true : false;
-               m_CD = (v & 0x10) == 0x10 ? true : false;
-               m_RCode = static_cast<r_code_t>(v & 0xF);
-            }
-
-            {
-               m_QdCount = static_cast<uint16_t>(next()) << 8;
-               m_QdCount |= static_cast<uint16_t>(next());
-            }
-
-            {
-               m_AnCount = static_cast<uint16_t>(next()) << 8;
-               m_AnCount |= static_cast<uint16_t>(next());
-            }
-
-            {
-               m_NsCount = static_cast<uint16_t>(next()) << 8;
-               m_NsCount |= static_cast<uint16_t>(next());
-            }
-
-            {
-               m_ArCount = static_cast<uint16_t>(next()) << 8;
-               m_ArCount |= static_cast<uint16_t>(next());
-            }
-
-            return cur_pos;
-         }
-
          uint16_t ID() const
          {
             return m_ID;
@@ -285,27 +224,88 @@ namespace dns
    };
 
    template<class OutputIterator>
-   void save_to(OutputIterator& o, name_offset_tracker_t& no_tr, const header_t& h)
+   void save_to(name_offset_tracker_t& tr, OutputIterator& o, const header_t& h)
    {
-      save_to(o, no_tr, h.ID());
+      save_to(tr, o, h.ID());
 
-      save_to(o, no_tr, static_cast<uint8_t>(
+      save_to(tr, o, static_cast<uint8_t>(
                  (h.QR_Flag() ? 0x80 : 0) |
                  ((static_cast<uint8_t>(h.OpCode()) & 0xF) << 3) |
                  (h.AA_Flag() ? 0x04 : 0) |
                  (h.TC_Flag() ? 0x02 : 0) |
                  (h.RD_Flag() ? 0x01 : 0)));
 
-      save_to(o, no_tr, static_cast<uint8_t>(
+      save_to(tr, o, static_cast<uint8_t>(
                  (h.RA_Flag() ? 0x80 : 0) |
                  (h.Res1_Flag() ? 0x40 : 0) |
                  (h.AD_Flag() ? 0x20 : 0) |
                  (h.CD_Flag() ? 0x10 : 0) |
                  (static_cast<uint8_t>(h.RCode()) & 0xF)));
 
-      save_to(o, no_tr, h.QdCount());
-      save_to(o, no_tr, h.AnCount());
-      save_to(o, no_tr, h.NsCount());
-      save_to(o, no_tr, h.ArCount());
+      save_to(tr, o, h.QdCount());
+      save_to(tr, o, h.AnCount());
+      save_to(tr, o, h.NsCount());
+      save_to(tr, o, h.ArCount());
+   }
+
+   template<class InputIterator>
+   void load_from(name_offset_tracker_t& tr, InputIterator& i, InputIterator end, header_t& h)
+   {
+      {
+         uint16_t v;
+         load_from(tr, i, end, v);
+
+         h.ID(v);
+      }
+
+      {
+         uint8_t v;
+         load_from(tr, i, end, v);
+
+         h.QR_Flag( (v & 0x80) == 0x80 ? true : false );
+         h.OpCode( static_cast<op_code_t>((v >> 3) & 0xF) );
+         h.AA_Flag( (v & 0x04) == 0x04 ? true : false );
+         h.TC_Flag( (v & 0x02) == 0x02 ? true : false );
+         h.RD_Flag( (v & 0x01) == 0x01 ? true : false );
+      }
+
+      {
+         uint8_t v;
+         load_from(tr, i, end, v);
+
+         h.RA_Flag( (v & 0x80) == 0x80 ? true : false );
+         h.Res1_Flag( (v & 0x40) == 0x40 ? true : false );
+         h.AD_Flag( (v & 0x20) == 0x20 ? true : false );
+         h.CD_Flag( (v & 0x10) == 0x10 ? true : false );
+         h.RCode( static_cast<r_code_t>(v & 0xF) );
+      }
+
+      {
+         uint16_t v;
+         load_from(tr, i, end, v);
+
+         h.QdCount(v);
+      }
+
+      {
+         uint16_t v;
+         load_from(tr, i, end, v);
+
+         h.AnCount(v);
+      }
+
+      {
+         uint16_t v;
+         load_from(tr, i, end, v);
+
+         h.NsCount(v);
+      }
+
+      {
+         uint16_t v;
+         load_from(tr, i, end, v);
+
+         h.ArCount(v);
+      }
    }
 }

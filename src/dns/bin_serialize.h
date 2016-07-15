@@ -4,20 +4,45 @@
 #include <string>
 
 #include "dns/name_offset_tracker.h"
+#include "dns/exception/bad_data_stream.h"
 
 namespace dns
 {
    template<class OutputIterator>
-   void save_to(OutputIterator& o, name_offset_tracker_t& no_tr, uint8_t x)
+   void save_to(name_offset_tracker_t& tr, OutputIterator& o, uint8_t x)
    {
       *o++ = x;
-      no_tr.increment_offset();
+      tr.increment_offset();
    }
 
    template<class OutputIterator>
-   void save_to(OutputIterator& o, name_offset_tracker_t& no_tr, uint16_t x)
+   void save_to(name_offset_tracker_t& tr, OutputIterator& o, uint16_t x)
    {
-      save_to(o, no_tr, static_cast<uint8_t>((x >> 8) & 0xFF));
-      save_to(o, no_tr, static_cast<uint8_t>((x >> 0) & 0xFF));
+      save_to(tr, o, static_cast<uint8_t>((x >> 8) & 0xFF));
+      save_to(tr, o, static_cast<uint8_t>((x >> 0) & 0xFF));
+   }
+
+   template<class InputIterator>
+   void load_from(name_offset_tracker_t& tr, InputIterator& i, InputIterator end, uint8_t& x)
+   {
+      if(i != end)
+      {
+         x = static_cast<uint8_t>(*i++);
+         tr.increment_offset();
+      }
+      else
+         throw dns::exception::bad_data_stream("truncated", 1);
+   }
+
+   template<class InputIterator>
+   void load_from(name_offset_tracker_t& tr, InputIterator& i, InputIterator end, uint16_t& x)
+   {
+      uint8_t x1;
+      load_from(tr, i, end, x1);
+
+      uint8_t x2;
+      load_from(tr, i, end, x2);
+
+      x = (static_cast<uint16_t>(x1) << 8) | static_cast<uint16_t>(x2);
    }
 }
