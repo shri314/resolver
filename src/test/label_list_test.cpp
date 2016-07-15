@@ -308,8 +308,8 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
    {
       BOOST_TEST_CONTEXT(Datum.test_context)
       {
-         if( boost::algorithm::contains(Datum.test_context, "GDB:") )
-            BOOST_TEST_MESSAGE( getpid() ), sleep(30);
+         if(boost::algorithm::contains(Datum.test_context, "GDB:"))
+            BOOST_TEST_MESSAGE(getpid()), sleep(30);
 
          std::string store;
 
@@ -360,7 +360,6 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
    }
 }
 
-#if 0
 BOOST_AUTO_TEST_CASE(dns_load_from)
 {
    struct
@@ -370,8 +369,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
 
       exception_info_t expected_exception;
       std::string expected_name;
-      uint16_t expected_ptr_offset;
-      std::string expected_stream;
+      uint16_t input_initial_offset;
       int expected_distance;
    }
    TestData[] =
@@ -383,19 +381,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
          exception_info(),
          "",
          0,
-         "[]",
          1,
-      },
-
-      {
-         TEST_CONTEXT("empty + ptr_offset"),
-         "\300\55"s,
-
-         exception_info(),
-         "",
-         45,
-         "[]->[45]",
-         2,
       },
 
       {
@@ -405,8 +391,17 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
          exception_info(),
          "www.yahoo.com",
          0,
-         "[www.yahoo.com]",
          15,
+      },
+
+      {
+         TEST_CONTEXT("a ptr_offset with no previous occurrence"),
+         "\300\55"s,
+
+         exception_info<dns::exception::bad_data_stream>("unseen offset"s, 1),
+         "",
+         45,
+         2,
       },
 
       {
@@ -416,7 +411,6 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
          exception_info(),
          "www.yahoo.com",
          45,
-         "[www.yahoo.com]->[45]",
          16,
       },
 
@@ -427,7 +421,6 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
          exception_info(),
          "www.yahoo.com",
          0,
-         "[www.yahoo.com]",
          15,
       },
 
@@ -438,7 +431,6 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
          exception_info(),
          "www.yahoo.com",
          45,
-         "[www.yahoo.com]->[45]",
          16,
       },
 
@@ -454,9 +446,6 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
          std::string(077, 'a') + '.' +
          std::string(077, 'b') + '.' + std::string(075, 'c'),
          0,
-         "[" + std::string(077, 'w') + '.' +
-         std::string(077, 'a') + '.' +
-         std::string(077, 'b') + '.' + std::string(075, 'c') + "]",
          255,
       },
 
@@ -472,9 +461,6 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
          std::string(077, 'a') + '.' +
          std::string(077, 'b') + '.' + std::string(074, 'c'),
          45,
-         "[" + std::string(077, 'w') + '.' +
-         std::string(077, 'a') + '.' +
-         std::string(077, 'b') + '.' + std::string(074, 'c') + "]->[45]",
          255,
       },
 
@@ -488,7 +474,6 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
          exception_info<dns::exception::bad_data_stream>("length too long"s, 1),
          "",
          0,
-         "",
          255,
       },
 
@@ -502,7 +487,6 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
          exception_info<dns::exception::bad_data_stream>("length too long"s, 1),
          "",
          0,
-         "",
          255,
       },
 
@@ -513,7 +497,6 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
          exception_info<dns::exception::bad_data_stream>("length too long"s, 2),
          "",
          0,
-         "",
          0,
       },
 
@@ -524,7 +507,6 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
          exception_info<dns::exception::bad_data_stream>("length too long"s, 2),
          "",
          0,
-         "",
          4,
       },
 
@@ -534,7 +516,6 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
          exception_info<dns::exception::bad_data_stream>("truncated"s, 2),
          "",
          0,
-         "",
          7,
       },
 
@@ -544,7 +525,6 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
          exception_info<dns::exception::bad_data_stream>("truncated"s, 2),
          "",
          0,
-         "",
          14,
       },
 
@@ -554,7 +534,6 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
          exception_info<dns::exception::bad_data_stream>("truncated"s, 2),
          "",
          0,
-         "",
          15,
       },
 
@@ -566,48 +545,41 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
    {
       BOOST_TEST_CONTEXT(Datum.test_context)
       {
+         if(boost::algorithm::contains(Datum.test_context, "GDB:"))
+            BOOST_TEST_MESSAGE(getpid()), sleep(30);
+
          // Check sane test configuration
          auto pQN = make_my_unique<dns::label_list_t>(); // TEST OBJECT
 
+         auto&& b = Datum.input_raw_data.begin();
+         auto&& e = Datum.input_raw_data.end();
+         dns::name_offset_tracker_t tr{Datum.input_initial_offset};
+
          if(Datum.expected_exception)
          {
-            auto&& b = Datum.input_raw_data.begin();
-            auto&& e = Datum.input_raw_data.end();
-
-            BOOST_CHECK_EXCEPTION(pQN->Load(b, e), std::exception, Datum.expected_exception); // THE TEST
+            BOOST_CHECK_EXCEPTION(dns::load_from(tr, b, e, *pQN), std::exception, Datum.expected_exception); // THE TEST
 
             BOOST_CHECK(0 <= std::distance(Datum.input_raw_data.begin(), b) && std::distance(Datum.input_raw_data.begin(), b) <= Datum.expected_distance);
-
-            decltype(pQN->Get()) res;
-            BOOST_CHECK_NO_THROW(res = pQN->Get());
-
-            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(res.first, initial_name));
-            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(res.second, 0));
-
-            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), initial_stream));
-
-            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(OctRep(pQN->Save()), OctRep(initial_raw_data)));
          }
          else
          {
-            auto&& b = Datum.input_raw_data.begin();
-            auto&& e = Datum.input_raw_data.end();
-
-            BOOST_CHECK_NO_THROW(pQN->Load(b, e)); // THE TEST
+            BOOST_CHECK_NO_THROW(dns::load_from(tr, b, e, *pQN)); // THE TEST
 
             BOOST_CHECK_EQUAL(std::distance(Datum.input_raw_data.begin(), b), Datum.expected_distance);
 
-            decltype(pQN->Get()) res;
-            BOOST_CHECK_NO_THROW(res = pQN->Get());
+            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(pQN->Name(), Datum.expected_name));
 
-            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(res.first, Datum.expected_name));
-            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(res.second, Datum.expected_ptr_offset));
+            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), "[" + Datum.expected_name + "]"));
 
-            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQN).str(), Datum.expected_stream));
+            {
+               auto&& temp_store = std::string{};
+               auto&& temp_o = std::back_inserter(temp_store);
+               auto&& temp_tr = dns::name_offset_tracker_t{Datum.input_initial_offset};
 
-            BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(OctRep(pQN->Save()), OctRep(Datum.input_raw_data.substr(0, Datum.expected_distance))));
+               BOOST_CHECK_NO_THROW(dns::save_to(tr, temp_o, *pQN));
+               BOOST_CHECK_EQUAL(OctRep(temp_store), OctRep(Datum.input_raw_data.substr(0, Datum.expected_distance)));
+            }
          }
       }
    }
 }
-#endif
