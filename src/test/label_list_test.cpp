@@ -7,6 +7,8 @@
 #include "test_context.h"
 #include "raw_dump.h"
 
+#include <boost/algorithm/string.hpp>
+
 #include <string>
 #include <sstream>
 #include <iostream>
@@ -119,7 +121,6 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
    }
    TestData[] =
    {
-      /*
       {
          TEST_CONTEXT("empty"),
          0,
@@ -130,6 +131,7 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
          "\0"s,
       },
 
+      /*
       {
          TEST_CONTEXT("empty + ptr_offset"), // NONSENSE TEST
          45,
@@ -149,6 +151,7 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
          exception_info(),
          "\0"s,
       },
+      */
 
       {
          TEST_CONTEXT("simple case"),
@@ -159,7 +162,6 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
          exception_info(),
          "\3www\5yahoo\3com\0"s,
       },
-      */
 
       {
          TEST_CONTEXT("simple case + ptr_offset"),
@@ -171,11 +173,11 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
          "\3www\5yahoo\3com\0\300\55"s,
       },
 
-      /*
       {
          TEST_CONTEXT("with single ending dot"),
-         "www.yahoo.com.",
          0,
+         "",
+         "www.yahoo.com.",
 
          exception_info(),
          "\3www\5yahoo\3com\0"s,
@@ -183,22 +185,25 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
 
       {
          TEST_CONTEXT("with single ending dot + ptr_offset"),
-         "www.yahoo.com.",
          45,
+         "www.yahoo.com.",
+         "www.yahoo.com.",
 
          exception_info(),
-         "\3www\5yahoo\3com\300\55"s,
+         "\3www\5yahoo\3com\0\300\55"s,
       },
 
       {
          TEST_CONTEXT("bad ptr_offset"),
-         "www.yahoo.com",
          16384,
+         "www.yahoo.com",
+         "www.yahoo.com",
 
          exception_info<dns::exception::bad_ptr_offset>("offset too long"s, 1),
-         "",
+         "\3www\5yahoo\3com\0"s,
       },
 
+      /*
       {
          TEST_CONTEXT("with extra ending dots"),
          "www.yahoo.com..",
@@ -297,6 +302,9 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
    {
       BOOST_TEST_CONTEXT(Datum.test_context)
       {
+         if( boost::algorithm::contains(Datum.test_context, "GDB:") )
+            BOOST_TEST_MESSAGE( getpid() ), sleep(30);
+
          std::string store;
 
          auto&& o = std::back_inserter(store);
@@ -339,9 +347,9 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
             {
                BOOST_CHECK_NO_THROW(dns::save_to(o, tr, *pQN));   // THE TEST (PART 2)
             }
-         }
 
-         BOOST_CHECK_EQUAL(OctRep(store), OctRep(Datum.expected_raw_data));
+            BOOST_CHECK_EQUAL(OctRep(store), OctRep(Datum.expected_raw_data));
+         }
       }
    }
 }
