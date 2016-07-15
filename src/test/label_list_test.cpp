@@ -131,9 +131,8 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
          "\0"s,
       },
 
-      /*
       {
-         TEST_CONTEXT("empty + ptr_offset"), // NONSENSE TEST
+         TEST_CONTEXT("empty domain if they reoccur are not tracked and replaced by ptr_offset"),
          45,
          "",
          "",
@@ -143,18 +142,7 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
       },
 
       {
-         TEST_CONTEXT("empty + ptr_offset which fits"), // NONSENSE TEST
-         16383,
-         "",
-         "",
-
-         exception_info(),
-         "\0"s,
-      },
-      */
-
-      {
-         TEST_CONTEXT("simple case"),
+         TEST_CONTEXT("simple domain case"),
          0,
          "",
          "www.yahoo.com",
@@ -164,17 +152,17 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
       },
 
       {
-         TEST_CONTEXT("simple case + ptr_offset"),
-         45,
-         "www.yahoo.com",
-         "www.yahoo.com",
+         TEST_CONTEXT("just data case - no dots"),
+         0,
+         "",
+         "wwwyahoocom",
 
          exception_info(),
-         "\3www\5yahoo\3com\0\300\55"s,
+         "\13wwwyahoocom\0"s,
       },
 
       {
-         TEST_CONTEXT("with single ending dot"),
+         TEST_CONTEXT("with single ending dot (absolute domain)"),
          0,
          "",
          "www.yahoo.com.",
@@ -184,13 +172,63 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
       },
 
       {
-         TEST_CONTEXT("with single ending dot + ptr_offset"),
+         TEST_CONTEXT("repeating domains should be replaced by ptr_offset"),
+         45,
+         "www.yahoo.com",
+         "www.yahoo.com",
+
+         exception_info(),
+         "\3www\5yahoo\3com\0\300\55"s,
+      },
+
+      {
+         TEST_CONTEXT("repeating domains (both domains with single ending dot) (ptr_offset)"),
          45,
          "www.yahoo.com.",
          "www.yahoo.com.",
 
          exception_info(),
          "\3www\5yahoo\3com\0\300\55"s,
+      },
+
+      {
+         TEST_CONTEXT("repeating domains (second domain with single ending dot) (ptr_offset)"),
+         45,
+         "www.yahoo.com",
+         "www.yahoo.com.",
+
+         exception_info(),
+         "\3www\5yahoo\3com\0\300\55"s,
+      },
+
+      {
+         TEST_CONTEXT("repeating domains (first domain with single ending dot) (ptr_offset)"),
+         45,
+         "www.yahoo.com.",
+         "www.yahoo.com",
+
+         exception_info(),
+         "\3www\5yahoo\3com\0\300\55"s,
+      },
+
+      {
+         TEST_CONTEXT("repeating subdomain case (level1) (subdomain replaced by ptr_offset)"),
+         45,
+         "www.google.com",
+         "www.yahoo.com",
+
+         exception_info(),
+         "\3www\6google\3com\0\3www\5yahoo\300\70"s,
+      },
+
+      {
+         TEST_CONTEXT("repeating subdomain case (level2) (subdomain replaced by ptr_offset)"),
+         45,
+         "mx1.yahoo.com",
+         "www.yahoo.com",
+
+         exception_info(),
+         "\3mx1\5yahoo\3com\0\3www\300\61"s,
       },
 
       {
@@ -203,29 +241,31 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
          "\3www\5yahoo\3com\0"s,
       },
 
-      /*
       {
-         TEST_CONTEXT("with extra ending dots"),
-         "www.yahoo.com..",
+         TEST_CONTEXT("with extra ending dots - they are ignored"),
          0,
-
-         exception_info<dns::exception::bad_name>("wrong format"s, 1),
          "",
+         "www.yahoo.com....",
+
+         exception_info(),
+         "\3www\5yahoo\3com\0"s,
       },
 
       {
-         TEST_CONTEXT("with extra dots"),
-         "www.yahoo..com",
+         TEST_CONTEXT("with extra dots in the middle"),
          0,
+         "",
+         "www.yahoo..com",
 
          exception_info<dns::exception::bad_name>("wrong format"s, 1),
-         "",
+         "\3www\5yahoo"s,
       },
 
       {
          TEST_CONTEXT("below 63 label limit"),
-         std::string(63, 'w') + ".com",
          0,
+         "",
+         std::string(63, 'w') + ".com",
 
          exception_info(),
          "\77"s + std::string(63, 'w') + "\3com\0"s,
@@ -233,67 +273,33 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
 
       {
          TEST_CONTEXT("below 63 label limit + ptr_offset"),
-         std::string(63, 'w') + ".com",
          45,
+         std::string(63, 'w') + ".com",
+         std::string(63, 'w') + ".com",
 
          exception_info(),
-         "\77"s + std::string(63, 'w') + "\3com\300\55"s,
+         "\77"s + std::string(63, 'w') + "\3com\0\300\55"s,
       },
 
       {
          TEST_CONTEXT("beyond 63 label limit"),
-         std::string(63, 'w') + "X.com",
          0,
+         "",
+         std::string(63, 'w') + "X.com",
 
          exception_info<dns::exception::bad_name>("length too long"s, 1),
          "",
       },
 
       {
-         TEST_CONTEXT("below 255 limit"),
-         std::string(077, 'w') + '.' + std::string(077, 'a') + '.' + std::string(077, 'b') + '.' + std::string(075, 'c'),
+         TEST_CONTEXT("a domain way above RFC limit of 255 is supported too"),
          0,
+         "",
+         std::string(077, 'w') + '.' + std::string(077, 'w') + '.' + std::string(077, 'a') + '.' + std::string(077, 'b') + '.' + std::string(075, 'c'),
 
          exception_info(),
-         "\77"s + std::string(077, 'w') + "\077"s + std::string(077, 'a') + "\077"s + std::string(077, 'b') + "\075"s + std::string(075, 'c') + "\0"s,
+         "\77"s + std::string(077, 'w') + "\77"s + std::string(077, 'w') + "\077"s + std::string(077, 'a') + "\077"s + std::string(077, 'b') + "\075"s + std::string(075, 'c') + "\0"s,
       },
-
-      {
-         TEST_CONTEXT("below 255 limit + ptr_offset"),
-         std::string(077, 'w') + '.' + std::string(077, 'a') + '.' + std::string(077, 'b') + '.' + std::string(074, 'c'),
-         45,
-
-         exception_info(),
-         "\77"s + std::string(077, 'w') + "\077"s + std::string(077, 'a') + "\077"s + std::string(077, 'b') + "\074"s + std::string(074, 'c') + "\300\55"s,
-      },
-
-      {
-         TEST_CONTEXT("beyond 255 limit (no room for chars)"),
-         std::string(077, 'w') + '.' + std::string(077, 'a') + '.' + std::string(077, 'b') + '.' + std::string(070, 'c') + '.' + std::string(06, 'd'),
-         0,
-
-         exception_info<dns::exception::bad_name>("length too long"s, 2),
-         "",
-      },
-
-      {
-         TEST_CONTEXT("beyond 255 limit (no room for internal \\0)"),
-         std::string(077, 'w') + '.' + std::string(077, 'a') + '.' + std::string(077, 'b') + '.' + std::string(075, 'c') + 'X',
-         0,
-
-         exception_info<dns::exception::bad_name>("length too long"s, 3),
-         "",
-      },
-
-      {
-         TEST_CONTEXT("beyond 255 limit (no room for internal ptr_offset)"),
-         std::string(077, 'w') + '.' + std::string(077, 'a') + '.' + std::string(077, 'b') + '.' + std::string(074, 'c') + 'X',
-         45,
-
-         exception_info<dns::exception::bad_name>("length too long"s, 3),
-         "",
-      },
-      */
    };
 
    /////////////////////////////////////////////////////

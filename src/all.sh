@@ -1,9 +1,10 @@
 #!/bin/bash
 
-CDPATH=
-SCRIPT_BASE=$(dirname "$0")
-cd "$SCRIPT_BASE"
+CDPATH= && cd "$(dirname "$0")"
 
-( mkdir -p build && cd build && cmake .. )
+( [ -f build/.cmade ] || mkdir -p build && cd build && cmake .. && touch .cmade )
 
-make -s -C build/ && make -s -C build/test/ all test
+set -e
+BOOST_TEST_COLOR_OUTPUT=0
+make -s -C build
+make -s -C build/test all test
