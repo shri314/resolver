@@ -34,7 +34,7 @@ void basic_io(int argc, char** argv)
    io.run();
 }
 
-#include "raw_dump.h"
+#include "util/oct_dump.h"
 
 #include "dns/header.h"
 #include "dns/question.h"
@@ -62,7 +62,7 @@ void basic_dns(int argc, char** argv)
       }
       else
       {
-         std::cout << OctRep(std::string(recv_buffer.begin(), recv_buffer.begin() + sz_rx)) << "\n";
+         std::cout << util::oct_dump(std::string(recv_buffer.begin(), recv_buffer.begin() + sz_rx)) << "\n";
 
          dns::header_t h;
          dns::name_offset_tracker_t tr;
@@ -123,7 +123,7 @@ void basic_dns(int argc, char** argv)
          write_buffer[0] = ((write_buffer.size() - 2) & 0xFF00) >> 8;
          write_buffer[1] = ((write_buffer.size() - 2) & 0x00FF) >> 0;
 
-         std::cout << OctRep(write_buffer) << "\n";
+         std::cout << util::oct_dump(write_buffer) << "\n";
 
          boost::asio::async_write(socket, boost::asio::buffer(write_buffer), onWriteQuery);
       }

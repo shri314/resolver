@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#watch --color "./all.sh | FORCE_COLOR=1 paint"
 export FORCE_COLOR=1
+PAINT=`which paint`
 
 while [ true ]
 do

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <memory>
+#include <utility>
+
 template<class Y, class... Args>
 inline auto make_my_unique(Args&& ... args)
 {

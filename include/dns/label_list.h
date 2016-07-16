@@ -8,7 +8,7 @@
 #include "dns/exception/bad_ptr_offset.h"
 #include "dns/exception/bad_name.h"
 #include "dns/bin_serialize.h"
-#include "split2_at.h"
+#include "util/split2_at.h"
 
 namespace dns
 {
@@ -68,7 +68,7 @@ namespace dns
          {
             tr.save_offset_of(range);
 
-            auto&& split_parts = split2_at(range, '.');
+            auto&& split_parts = util::split2_at(range, '.');
 
             auto&& sz = split_parts.first.size();
 

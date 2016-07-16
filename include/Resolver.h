@@ -3,7 +3,7 @@
 #include <memory> // unique_ptr
 #include <boost/asio.hpp>
 
-#include "raw_dump.h"
+#include "oct_dump.h"
 
 namespace DnsProtocol
 {

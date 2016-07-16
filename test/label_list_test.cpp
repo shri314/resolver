@@ -5,9 +5,9 @@
 #include "dns/label_list.h"
 
 #include "test/exception_info.h"
-#include "make_my_unique.h"
-#include "test_context.h"
-#include "raw_dump.h"
+#include "test/make_my_unique.h"
+#include "test/test_context.h"
+#include "util/oct_dump.h"
 
 #include <boost/algorithm/string.hpp>
 
@@ -263,7 +263,7 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
                BOOST_CHECK_NO_THROW(dns::save_to(tr, o, *pLL));   // THE TEST (PART 2)
             }
 
-            BOOST_CHECK_EQUAL(OctRep(store), OctRep(Datum.expected_raw_data));
+            BOOST_CHECK_EQUAL(util::oct_dump(store), util::oct_dump(Datum.expected_raw_data));
          }
       }
    }

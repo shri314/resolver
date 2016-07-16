@@ -5,9 +5,9 @@
 #include "dns/header.h"
 
 #include "test/exception_info.h"
-#include "make_my_unique.h"
-#include "test_context.h"
-#include "raw_dump.h"
+#include "test/make_my_unique.h"
+#include "test/test_context.h"
+#include "util/oct_dump.h"
 
 #include <boost/algorithm/string.hpp>
 
@@ -227,7 +227,7 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
                BOOST_CHECK_NO_THROW(save_to(tr, o, *pH));   // TEST
             }
 
-            BOOST_CHECK_EQUAL(OctRep(store), OctRep(Datum.expected_raw_data));
+            BOOST_CHECK_EQUAL(util::oct_dump(store), util::oct_dump(Datum.expected_raw_data));
 
             BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pH).str(), Datum.expected_stream));
          }
@@ -511,7 +511,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
                BOOST_CHECK_NO_THROW(save_to(tr, o, *pH));
             }
 
-            BOOST_CHECK_EQUAL(OctRep(store), OctRep(Datum.input_raw_data.substr(0, Datum.expected_distance)));
+            BOOST_CHECK_EQUAL(util::oct_dump(store), util::oct_dump(Datum.input_raw_data.substr(0, Datum.expected_distance)));
 
             BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pH).str(), Datum.expected_stream));
 
