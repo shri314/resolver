@@ -1,87 +1,153 @@
 #pragma once
 
-#include <ostream>
-#include <string>
-
 #include "dns/rr_type.h"
 #include "dns/rr_class.h"
 
-#include "dns/exception/bad_data_stream.h"
+#include "dns/name_offset_tracker.h"
+#include "dns/label_list.h"
+
+#include <ostream>
+#include <string>
+#include <limits>
 
 namespace dns
 {
    class record_t
    {
       public:
-         void RRName(const std::string& rrname)
+         void Name(const std::string& name)
          {
-            m_rrname = rrname;
+            m_name = name;
          }
 
-         std::string RRName() const
+         std::string Name() const
          {
-            return m_rrname;
+            return m_name;
          }
 
-         void RRType(rr_type_t v)
+         void Type(rr_type_t v)
          {
-            m_rrtype = v;
+            m_type = v;
          }
 
-         rr_type_t RRType() const
+         rr_type_t Type() const
          {
-            return m_rrtype;
+            return m_type;
          }
 
-         void RRClass(rr_class_t v)
+         void Class(rr_class_t v)
          {
-            m_rrclass = v;
+            m_class = v;
          }
 
-         rr_class_t RRClass() const
+         rr_class_t Class() const
          {
-            return m_rrclass;
+            return m_class;
          }
 
          void TTL(uint32_t v)
          {
-            m_ttl = v;
+            m_TTL = v;
          }
 
          uint32_t TTL() const
          {
-            return m_ttl;
+            return m_TTL;
          }
 
-         friend std::ostream& operator<<(std::ostream& os, const Question_t& rhs)
+         uint16_t DataLength() const
          {
-            return os << "{ RRName=" << rhs.RRName() << ", RRType=" << rhs.RRType() << ", RRClass=" << rhs.RRClass() << ", TTL=" << rhs.TTL() << " }";
+            return static_cast<uint16_t>(m_record_data.size());
          }
 
-         template<class OutputIterator>
-         OutputIterator save_to(OutputIterator o)
+         void Data(std::string record_data)
          {
-            return o;
+            if(record_data.size() > std::numeric_limits<uint16_t>::max())
+               record_data.erase(std::numeric_limits<uint16_t>::max());
+
+            m_record_data = std::move(record_data);
          }
 
-         template<class InputIterator>
-         InputIterator load_from(InputIterator cur_pos, InputIterator end)
+         std::string Data() const
          {
-            auto&& next = [&cur_pos, end]()
-            {
-               if(cur_pos != end)
-                  return static_cast<uint8_t>(*cur_pos++);
+            return m_record_data;
+         }
 
-               throw dns::exception::bad_data_stream("truncated", 1);
-            };
+         template<class RecordT>
+         RecordT RecordAs() const
+         {
+            return RecordT{};
+         }
 
-            return cur_pos;
+         friend std::ostream& operator<<(std::ostream& os, const record_t& rhs)
+         {
+            return os << "{ Name=" << rhs.Name() << ", Type=" << rhs.Type() << ", Class=" << rhs.Class() << ", TTL=" << rhs.TTL() << " }";
          }
 
       private:
-         std::string m_rrname;
-         rr_type_t m_rrtype = rr_type_t::rec_a;
-         rr_class_t m_rrclass = rr_class_t::internet;
-         int32_t m_ttl = 0;
+         std::string m_name;
+         rr_type_t m_type = rr_type_t::rec_a;
+         rr_class_t m_class = rr_class_t::internet;
+         int32_t m_TTL = 0;
+         std::string m_record_data;
    };
+
+   template<class OutputIterator>
+   void save_to(name_offset_tracker_t& tr, OutputIterator& oi, const record_t& r)
+   {
+      save_to(tr, oi, label_list_t{r.Name()});
+      save_to(tr, oi, static_cast<uint16_t>(r.Type()));
+      save_to(tr, oi, static_cast<uint16_t>(r.Class()));
+      save_to(tr, oi, r.TTL());
+      save_to(tr, oi, static_cast<uint16_t>(r.DataLength()));
+
+      for(auto& c : r.Data())
+         save_to(tr, oi, static_cast<uint8_t>(c));
+   }
+
+   template<class InputIterator>
+   void load_from(name_offset_tracker_t& tr, InputIterator& ii, InputIterator end, record_t& r)
+   {
+      {
+         label_list_t ll;
+         load_from(tr, ii, end, ll);
+         r.Name(ll.Name());
+      }
+
+      {
+         uint16_t v;
+         load_from(tr, ii, end, v);
+         r.Type(static_cast<rr_type_t>(v));
+      }
+
+      {
+         uint16_t v;
+         load_from(tr, ii, end, v);
+         r.Class(static_cast<rr_class_t>(v));
+      }
+
+      {
+         uint32_t v;
+         load_from(tr, ii, end, v);
+         r.TTL(v);
+      }
+
+      {
+         uint16_t sz;
+         load_from(tr, ii, end, sz);
+
+         std::string record_data;
+         record_data.reserve(sz);
+
+         for(auto&& i = 0; i < sz; ++i)
+         {
+            uint8_t c;
+            load_from(tr, ii, end, c);
+            
+            record_data.push_back(c);
+         }
+
+         r.Data(record_data);
+      }
+   }
 }

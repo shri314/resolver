@@ -16,17 +16,18 @@ namespace dns
          template<class OutputIterator>
          OutputIterator save_to(OutputIterator o)
          {
-            name_offset_tracker_t L;
+            name_offset_tracker_t tr;
 
-            o = m_header.save_to(o, &L);
+            dns::save_to(tr, o, m_header);
+
             for(auto&& q : m_question)
-               o = q.save_to(o, &L);
+               dns::save_to(tr, o, q);
             for(auto&& r : m_answer)
-               o = r.save_to(o, &L);
+               dns::save_to(tr, o, r);
             for(auto&& r : m_authority)
-               o = r.save_to(o, &L);
+               dns::save_to(tr, o, r);
             for(auto&& r : m_additional)
-               o = r.save_to(o, &L);
+               dns::save_to(tr, o, r);
 
             return o;
          }
@@ -34,7 +35,9 @@ namespace dns
          template<class InputIterator>
          InputIterator load_from(InputIterator cur_pos, InputIterator end)
          {
-            cur_pos = m_header.load_from(cur_pos, end);
+            name_offset_tracker_t tr;
+
+            dns::load_from(tr, cur_pos, end, m_header);
 
             m_question.resize( m_header.QDCount() );
             m_answer.resize( m_header.ANCount() );
@@ -42,13 +45,13 @@ namespace dns
             m_additional.resize( m_header.ARCount() );
 
             for(auto&& q : m_question)
-               cur_pos = q.load_from(cur_pos, end);
+               dns::load_from(tr, cur_pos, end, q);
             for(auto&& r : m_answer)
-               cur_pos = r.load_from(cur_pos, end);
+               dns::load_from(tr, cur_pos, end, r);
             for(auto&& r : m_authority)
-               cur_pos = r.load_from(cur_pos, end);
+               dns::load_from(tr, cur_pos, end, r);
             for(auto&& r : m_additional)
-               cur_pos = r.load_from(cur_pos, end);
+               dns::load_from(tr, cur_pos, end, r);
 
             return cur_pos;
          }

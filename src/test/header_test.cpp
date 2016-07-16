@@ -4,6 +4,8 @@
 
 #include "dns/header.h"
 
+#include "test/exception_info.h"
+#include "make_my_unique.h"
 #include "test_context.h"
 #include "raw_dump.h"
 
@@ -11,105 +13,8 @@
 
 #include <string>
 #include <sstream>
-#include <iostream>
 
 using namespace std::string_literals;
-
-template<class Y, class... Args>
-auto make_my_unique(Args&& ... args)
-{
-   union U
-   {
-      Y y;
-      char storage[ sizeof(Y) ];
-
-      U(Args&& ... args)
-      {
-         for(auto& c : storage)
-            c = 0xFF;
-
-         new(&y) Y(std::forward<Args>(args)...);
-      }
-
-      ~U()
-      {
-         y.~Y();
-      }
-   };
-
-   U* u = new U(std::forward<Args>(args)...);
-
-   auto del = [u](Y*) { delete u; };
-
-   return std::unique_ptr<Y, decltype(del)>(&(u->y), del);
-}
-
-struct exception_info_t
-{
-      std::string type;
-      std::string str;
-      int code;
-
-   public:
-      exception_info_t() = default;
-
-      exception_info_t(const std::string& type, const std::string& str, int code)
-         : type(type)
-         , str(str)
-         , code(code)
-      {
-      }
-
-      explicit operator bool() const
-      {
-         return !type.empty();
-      }
-
-      template<class ET>
-      bool operator()(const ET& e)
-      {
-         BOOST_CHECK_EQUAL(typeid(e).name(), type);
-         BOOST_CHECK_EQUAL(e.what(), str);
-
-         /*
-         if(auto f = dynamic_cast<const dns::exception::bad_name*>(&e))
-         {
-            BOOST_CHECK_EQUAL(f->code(), code);
-            return true;
-         }
-         */
-
-         if(auto f = dynamic_cast<const dns::exception::bad_data_stream*>(&e))
-         {
-            BOOST_CHECK_EQUAL(f->code(), code);
-            return true;
-         }
-
-         /*
-         if(auto f = dynamic_cast<const dns::exception::bad_ptr_offset*>(&e))
-         {
-            BOOST_CHECK_EQUAL(f->code(), code);
-            return true;
-         }
-         */
-
-         BOOST_TEST(false, "unexpected exception");
-         return false;
-      }
-};
-
-
-template<class ET>
-exception_info_t exception_info(const std::string& str, int code)
-{
-   return exception_info_t{ typeid(ET).name(), str, code };
-}
-
-exception_info_t exception_info()
-{
-   return exception_info_t{};
-}
-
 
 BOOST_AUTO_TEST_CASE(dns_save_to)
 {

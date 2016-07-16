@@ -15,7 +15,7 @@ namespace dns
    class label_list_t
    {
       public:
-         label_list_t(std::string name = "")
+         label_list_t(std::string name = std::string{})
          {
             Name(std::move(name));
          }

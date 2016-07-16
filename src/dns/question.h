@@ -14,39 +14,39 @@ namespace dns
    class question_t
    {
       public:
-         void QName(const std::string& qname)
+         void Name(const std::string& qname)
          {
             m_qname = qname;
          }
 
-         std::string QName() const
+         std::string Name() const
          {
             return m_qname;
          }
 
-         void QType(rr_type_t v)
+         void Type(rr_type_t v)
          {
-            m_qtype = v;
+            m_type = v;
          }
 
-         rr_type_t QType() const
+         rr_type_t Type() const
          {
-            return m_qtype;
+            return m_type;
          }
 
-         void QClass(rr_class_t v)
+         void Class(rr_class_t v)
          {
-            m_qclass = v;
+            m_class = v;
          }
 
-         rr_class_t QClass() const
+         rr_class_t Class() const
          {
-            return m_qclass;
+            return m_class;
          }
 
          friend std::ostream& operator<<(std::ostream& os, const question_t& rhs)
          {
-            return os << "{ QName=" << rhs.QName() << ", QType=" << rhs.QType() << ", QClass=" << rhs.QClass() << " }";
+            return os << "{ Name=" << rhs.Name() << ", Type=" << rhs.Type() << ", Class=" << rhs.Class() << " }";
          }
 
          template<class InputIterator>
@@ -65,15 +65,37 @@ namespace dns
 
       private:
          std::string m_qname;
-         rr_type_t m_qtype = rr_type_t::rec_a;
-         rr_class_t m_qclass = rr_class_t::internet;
+         rr_type_t m_type = rr_type_t::rec_a;
+         rr_class_t m_class = rr_class_t::internet;
    };
 
    template<class OutputIterator>
-   void save_to(OutputIterator& o, name_offset_tracker_t& no_tr, const question_t& q)
+   void save_to(name_offset_tracker_t& tr, OutputIterator& o, const question_t& q)
    {
-      save_to(o, no_tr, label_list_t{q.QName()});
-      save_to(o, no_tr, static_cast<uint16_t>(q.QType()));
-      save_to(o, no_tr, static_cast<uint16_t>(q.QClass()));
+      save_to(tr, o, label_list_t{q.Name()});
+      save_to(tr, o, static_cast<uint16_t>(q.Type()));
+      save_to(tr, o, static_cast<uint16_t>(q.Class()));
+   }
+
+   template<class InputIterator>
+   void load_from(name_offset_tracker_t& tr, InputIterator& i, InputIterator end, question_t& q)
+   {
+      {
+         label_list_t ll;
+         load_from(tr, i, end, ll);
+         q.Name(ll.Name());
+      }
+
+      {
+         uint16_t v;
+         load_from(tr, i, end, v);
+         q.Type(static_cast<rr_type_t>(v));
+      }
+
+      {
+         uint16_t v;
+         load_from(tr, i, end, v);
+         q.Class(static_cast<rr_class_t>(v));
+      }
    }
 }
