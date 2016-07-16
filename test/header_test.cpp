@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
          /* QdCount */ 1, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 0,
 
          "\xf9\xac\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00"s,
-         "{ ID=63916, Flags=[QRY], OpCode=query, RCode=no_error, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
+         "{ ID=63916, Flags=[], OpCode=query, RCode=no_error, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
       },
 
       {
@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
          /* QdCount */ 0, /* AnCount */ 1, /* NsCount */ 0, /* ArCount */ 0,
 
          "\x50\x06\x80\x00\x00\x00\x00\x01\x00\x00\x00\x00"s,
-         "{ ID=20486, Flags=[RES], OpCode=query, RCode=no_error, QdCount=0, AnCount=1, NsCount=0, ArCount=0 }",
+         "{ ID=20486, Flags=[QR], OpCode=query, RCode=no_error, QdCount=0, AnCount=1, NsCount=0, ArCount=0 }",
       },
 
       {
@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
          /* QdCount */ 0, /* AnCount */ 1, /* NsCount */ 0, /* ArCount */ 0,
 
          "\x50\x06\x80\x09\x00\x00\x00\x01\x00\x00\x00\x00"s,
-         "{ ID=20486, Flags=[RES], OpCode=query, RCode=not_auth, QdCount=0, AnCount=1, NsCount=0, ArCount=0 }",
+         "{ ID=20486, Flags=[QR], OpCode=query, RCode=not_auth, QdCount=0, AnCount=1, NsCount=0, ArCount=0 }",
       },
 
       {
@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
          /* QdCount */ 1, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 0,
 
          "\xf9\xac\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00"s,
-         "{ ID=63916, Flags=[QRY,RD], OpCode=query, RCode=no_error, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
+         "{ ID=63916, Flags=[RD], OpCode=query, RCode=no_error, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
       },
 
       {
@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
          /* QdCount */ 1, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 0,
 
          "\xf9\xac\x10\x00\x00\x01\x00\x00\x00\x00\x00\x00"s,
-         "{ ID=63916, Flags=[QRY], OpCode=status, RCode=no_error, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
+         "{ ID=63916, Flags=[], OpCode=status, RCode=no_error, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
       },
 
       {
@@ -114,7 +114,7 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
          /* QdCount */ 0, /* AnCount */ 0, /* NsCount */ 1, /* ArCount */ 0,
 
          "\x11\x11\x84\x00\x00\x00\x00\x00\x00\x01\x00\x00"s,
-         "{ ID=4369, Flags=[RES,AA], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=1, ArCount=0 }",
+         "{ ID=4369, Flags=[QR,AA], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=1, ArCount=0 }",
       },
 
       {
@@ -126,7 +126,7 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
          /* QdCount */ 0, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 1,
 
          "\xFF\xFF\x82\x00\x00\x00\x00\x00\x00\x00\x00\x01"s,
-         "{ ID=65535, Flags=[RES,TC], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
+         "{ ID=65535, Flags=[QR,TC], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
       },
 
       {
@@ -138,7 +138,7 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
          /* QdCount */ 0, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 1,
 
          "\xFF\xFF\x80\x80\x00\x00\x00\x00\x00\x00\x00\x01"s,
-         "{ ID=65535, Flags=[RES,RA], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
+         "{ ID=65535, Flags=[QR,RA], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
       },
 
       {
@@ -150,7 +150,7 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
          /* QdCount */ 0, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 1,
 
          "\xFF\xFF\x80\x20\x00\x00\x00\x00\x00\x00\x00\x01"s,
-         "{ ID=65535, Flags=[RES,AD], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
+         "{ ID=65535, Flags=[QR,AD], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
       },
 
       {
@@ -162,7 +162,7 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
          /* QdCount */ 0, /* AnCount */ 0, /* NsCount */ 0, /* ArCount */ 1,
 
          "\xFF\xFF\x80\x10\x00\x00\x00\x00\x00\x00\x00\x01"s,
-         "{ ID=65535, Flags=[RES,CD], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
+         "{ ID=65535, Flags=[QR,CD], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
       },
    };
 
@@ -276,7 +276,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
 
          exception_info(),
          12,
-         "{ ID=63916, Flags=[QRY], OpCode=query, RCode=no_error, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
+         "{ ID=63916, Flags=[], OpCode=query, RCode=no_error, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
 
          /* ID */ 0xf9ac,
          /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
@@ -290,7 +290,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
 
          exception_info(),
          12,
-         "{ ID=63916, Flags=[QRY], OpCode=query, RCode=no_error, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
+         "{ ID=63916, Flags=[], OpCode=query, RCode=no_error, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
 
          /* ID */ 0xf9ac,
          /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
@@ -304,7 +304,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
 
          exception_info(),
          12,
-         "{ ID=20486, Flags=[RES], OpCode=query, RCode=no_error, QdCount=0, AnCount=1, NsCount=0, ArCount=0 }",
+         "{ ID=20486, Flags=[QR], OpCode=query, RCode=no_error, QdCount=0, AnCount=1, NsCount=0, ArCount=0 }",
 
          /* ID */ 0x5006,
          /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
@@ -318,7 +318,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
 
          exception_info(),
          12,
-         "{ ID=20486, Flags=[RES], OpCode=query, RCode=no_error, QdCount=0, AnCount=1, NsCount=0, ArCount=0 }",
+         "{ ID=20486, Flags=[QR], OpCode=query, RCode=no_error, QdCount=0, AnCount=1, NsCount=0, ArCount=0 }",
 
          /* ID */ 0x5006,
          /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
@@ -341,7 +341,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
 
          exception_info(),
          12,
-         "{ ID=20486, Flags=[RES], OpCode=query, RCode=not_auth, QdCount=0, AnCount=1, NsCount=0, ArCount=0 }",
+         "{ ID=20486, Flags=[QR], OpCode=query, RCode=not_auth, QdCount=0, AnCount=1, NsCount=0, ArCount=0 }",
 
          /* ID */ 0x5006,
          /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
@@ -355,7 +355,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
 
          exception_info(),
          12,
-         "{ ID=63916, Flags=[QRY,RD], OpCode=query, RCode=no_error, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
+         "{ ID=63916, Flags=[RD], OpCode=query, RCode=no_error, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
 
          /* ID */ 0xf9ac,
          /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ true, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
@@ -369,7 +369,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
 
          exception_info(),
          12,
-         "{ ID=63916, Flags=[QRY], OpCode=status, RCode=no_error, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
+         "{ ID=63916, Flags=[], OpCode=status, RCode=no_error, QdCount=1, AnCount=0, NsCount=0, ArCount=0 }",
 
          /* ID */ 0xf9ac,
          /* QR_Flag */ false, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
@@ -383,7 +383,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
 
          exception_info(),
          12,
-         "{ ID=4369, Flags=[RES,AA], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=1, ArCount=0 }",
+         "{ ID=4369, Flags=[QR,AA], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=1, ArCount=0 }",
 
          /* ID */ 0x1111,
          /* QR_Flag */ true, /* AA_Flag */ true, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
@@ -397,7 +397,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
 
          exception_info(),
          12,
-         "{ ID=65535, Flags=[RES,TC], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
+         "{ ID=65535, Flags=[QR,TC], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
 
          /* ID */ 0xFFFF,
          /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ true, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ false,
@@ -411,7 +411,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
 
          exception_info(),
          12,
-         "{ ID=65535, Flags=[RES,RA], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
+         "{ ID=65535, Flags=[QR,RA], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
 
          /* ID */ 0xFFFF,
          /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ true, /* AD_Flag */ false, /* CD_Flag */ false,
@@ -425,7 +425,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
 
          exception_info(),
          12,
-         "{ ID=65535, Flags=[RES,AD], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
+         "{ ID=65535, Flags=[QR,AD], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
 
          /* ID */ 0xFFFF,
          /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ true, /* CD_Flag */ false,
@@ -439,7 +439,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
 
          exception_info(),
          12,
-         "{ ID=65535, Flags=[RES,CD], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
+         "{ ID=65535, Flags=[QR,CD], OpCode=query, RCode=no_error, QdCount=0, AnCount=0, NsCount=0, ArCount=1 }",
 
          /* ID */ 0xFFFF,
          /* QR_Flag */ true, /* AA_Flag */ false, /* TC_Flag */ false, /* RD_Flag */ false, /* RA_Flag */ false, /* AD_Flag */ false, /* CD_Flag */ true,

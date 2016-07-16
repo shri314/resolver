@@ -38,10 +38,12 @@ void basic_io(int argc, char** argv)
 
 #include "dns/header.h"
 #include "dns/question.h"
+#include "dns/record.h"
 
 void basic_dns(int argc, char** argv)
 {
-   --argc; ++argv;
+   --argc;
+   ++argv;
 
    if(argc <= 0)
       return;
@@ -62,14 +64,69 @@ void basic_dns(int argc, char** argv)
       }
       else
       {
-         std::cout << util::oct_dump(std::string(recv_buffer.begin(), recv_buffer.begin() + sz_rx)) << "\n";
+         // std::cout << util::oct_dump(std::string(recv_buffer.begin(), recv_buffer.begin() + sz_rx)) << "\n";
 
-         dns::header_t h;
-         dns::name_offset_tracker_t tr;
          auto&& b = recv_buffer.begin();
          auto&& e = recv_buffer.end();
-         dns::load_from(tr, b, e, h);
-         std::cout << h << "\n";
+         auto&& tr = dns::name_offset_tracker_t{};
+
+         auto&& h = dns::header_t{};
+         {
+            dns::load_from(tr, b, e, h);
+            std::cout << "S: HD: " << h << "\n";
+         }
+
+         for(int i = 0; i < h.QdCount(); ++i)
+         {
+            try
+            {
+               auto&& q = dns::question_t{};
+               dns::load_from(tr, b, e, q);
+               std::cout << "S: QD: " << q << "\n";
+            }
+            catch(...)
+            {
+            }
+         }
+
+         for(int i = 0; i < h.AnCount(); ++i)
+         {
+            try
+            {
+               auto&& r = dns::record_t{};
+               dns::load_from(tr, b, e, r);
+               std::cout << "S: AN: " << r << "\n";
+            }
+            catch(...)
+            {
+            }
+         }
+
+         for(int i = 0; i < h.NsCount(); ++i)
+         {
+            try
+            {
+               auto&& r = dns::record_t{};
+               dns::load_from(tr, b, e, r);
+               std::cout << "S: NS: " << r << "\n";
+            }
+            catch(...)
+            {
+            }
+         }
+
+         for(int i = 0; i < h.ArCount(); ++i)
+         {
+            try
+            {
+               auto&& r = dns::record_t{};
+               dns::load_from(tr, b, e, r);
+               std::cout << "S: AR: " << r << "\n";
+            }
+            catch(...)
+            {
+            }
+         }
       }
    };
 
@@ -77,11 +134,14 @@ void basic_dns(int argc, char** argv)
    {
       if(sz_rx <= 0 && !ec)
       {
+         std::cout << sz_rx << "\n";
          std::cout << "sz read failed - " << ec.message() << "\n";
       }
       else
       {
          uint16_t sz = (recv_buffer[0] << 8) | recv_buffer[1];
+
+         // std::cout << "expect sz = " << sz << "\n";
          recv_buffer.resize(sz);
          boost::asio::async_read(socket, boost::asio::buffer(recv_buffer), onReadResponse);
       }
@@ -110,25 +170,51 @@ void basic_dns(int argc, char** argv)
       {
          write_buffer.resize(2);
 
-         for(auto c : "\36\23\1 \0\1\0\0\0\0\0\1\3www\5gmail\3com\0\0\17\0\1\0\0)\20\0\0\0\0\0\0\0"s)
-            write_buffer.push_back(c);
+         srand(time(0));
 
-         dns::header_t h;
-         dns::name_offset_tracker_t tr;
-         auto&& b = write_buffer.begin() + 2;
-         auto&& e = write_buffer.end();
-         dns::load_from(tr, b, e, h);
-         std::cout << h << "\n";
+         {
+            auto&& h = dns::header_t{};
+            {
+               h.ID( rand() );
+               h.RD_Flag(true);
+               h.AD_Flag(true);
+               h.QdCount(1);
+            }
+
+            auto&& q = dns::question_t{};
+            {
+               q.Name("www.gmail.com");
+               q.Type(dns::rr_type_t::rec_mx);
+               q.Class(dns::rr_class_t::internet);
+            }
+
+            auto&& r = dns::record_t{};
+            {
+               r.Name("");
+               r.Type(dns::rr_type_t::rec_opt);
+               r.Class(static_cast<dns::rr_class_t>(4096));
+               r.TTL(0);
+               r.Data("");
+            }
+
+            std::cout << "C: HD: " << h << "\n";
+            std::cout << "C: QD: " << q << "\n";
+
+            auto&& oi = std::back_inserter(write_buffer);
+            auto&& tr = dns::name_offset_tracker_t{};
+
+            dns::save_to(tr, oi, h);
+            dns::save_to(tr, oi, q);
+         }
 
          write_buffer[0] = ((write_buffer.size() - 2) & 0xFF00) >> 8;
          write_buffer[1] = ((write_buffer.size() - 2) & 0x00FF) >> 0;
 
-         std::cout << util::oct_dump(write_buffer) << "\n";
+         // std::cout << util::oct_dump(write_buffer) << "\n";
 
          boost::asio::async_write(socket, boost::asio::buffer(write_buffer), onWriteQuery);
       }
    };
-
 
    socket.async_connect(endpoint, onConnect);
 

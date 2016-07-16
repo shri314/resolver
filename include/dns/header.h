@@ -172,7 +172,7 @@ namespace dns
                std::string sep = "";
                for(auto F :
                      {
-                        std::string(rhs.QR_Flag() ? "RES" : "QRY"),
+                        std::string(rhs.QR_Flag() ? "QR" : ""),
                         std::string(rhs.AA_Flag() ? "AA" : ""),
                         std::string(rhs.TC_Flag() ? "TC" : ""),
                         std::string(rhs.RD_Flag() ? "RD" : ""),
