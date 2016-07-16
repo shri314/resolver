@@ -379,40 +379,35 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
    }
    TestData[] =
    {
-#if 0
       {
          TEST_CONTEXT("empty"),
-         "\0"s,
+         1, "\0"s,
 
-         exception_info(),
-         "",
-         0,
-         1,
+         {
+            { exception_info(), "", 1,},
+         },
       },
 
       {
          TEST_CONTEXT("simple case"),
-         "\3www\5yahoo\3com\0"s,
+         15, "\3www\5yahoo\3com\0"s,
 
-         exception_info(),
-         "www.yahoo.com",
-         0,
-         15,
+         {
+            { exception_info(), "www.yahoo.com", 15, },
+         },
       },
 
       {
          TEST_CONTEXT("a ptr_offset with no previous occurrence"),
-         "\300\55"s,
+         45, "\300\55"s,
 
-         exception_info<dns::exception::bad_data_stream>("unseen offset"s, 1),
-         "",
-         45,
-         2,
+         {
+            { exception_info<dns::exception::bad_data_stream>("unseen offset"s, 1), "", 2, },
+         },
       },
-#endif
 
       {
-         TEST_CONTEXT("simple case + ptr_offset"),
+         TEST_CONTEXT("repeating domains (valid ptr_offset)"),
          45, "\3www\5yahoo\3com\0\300\55"s,
 
          {
@@ -421,130 +416,72 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
          },
       },
 
-#if 0
       {
-         TEST_CONTEXT("consumption not beyond null"),
-         "\3www\5yahoo\3com\0ABCDEFGHIJKLMNOPQRSTUVWXYZ"s,
+         TEST_CONTEXT("repeating subdomains (valid ptr_offsets)"),
+         45, "\3www\5yahoo\3com\0\3www\5gmail\300\67\300\74"s,
 
-         exception_info(),
-         "www.yahoo.com",
-         0,
-         15,
+         {
+            { exception_info(), "www.yahoo.com", 15, },
+            { exception_info(), "www.gmail.com", 27, },
+            { exception_info(), "www.gmail.com", 29, },
+         },
       },
 
       {
-         TEST_CONTEXT("consumption not beyond ptr_offset"),
-         "\3www\5yahoo\3com\300\55ZBCDEFGHIJKLMNOPQRSTUVWXYZ"s,
+         TEST_CONTEXT("repeating same domains (with multiple ptr_offset)"),
+         45, "\3www\5yahoo\3com\0\3www\5yahoo\3com\0\300\55\300\74"s,
 
-         exception_info(),
-         "www.yahoo.com",
-         45,
-         16,
-      },
-
-      {
-         TEST_CONTEXT("within exactly supported length of 255"),
-         "\77"s + std::string(077, 'w') +
-         "\77"s + std::string(077, 'a') +
-         "\77"s + std::string(077, 'b') +
-         "\75"s + std::string(075, 'c') + "\0ABCD"s,
-
-         exception_info(),
-         std::string(077, 'w') + '.' +
-         std::string(077, 'a') + '.' +
-         std::string(077, 'b') + '.' + std::string(075, 'c'),
-         0,
-         255,
-      },
-
-      {
-         TEST_CONTEXT("within exactly supported length of 255 + ptr_offset"),
-         "\77"s + std::string(077, 'w') +
-         "\77"s + std::string(077, 'a') +
-         "\77"s + std::string(077, 'b') +
-         "\74"s + std::string(074, 'c') + "\300\55ZABCD"s,
-
-         exception_info(),
-         std::string(077, 'w') + '.' +
-         std::string(077, 'a') + '.' +
-         std::string(077, 'b') + '.' + std::string(074, 'c'),
-         45,
-         255,
-      },
-
-      {
-         TEST_CONTEXT("bad length in data > 255"),
-         "\77"s + std::string(077, 'w') +
-         "\77"s + std::string(077, 'a') +
-         "\77"s + std::string(077, 'b') +
-         "\76"s + std::string(076, 'c') + "\0ABCD"s,
-
-         exception_info<dns::exception::bad_data_stream>("length too long"s, 1),
-         "",
-         0,
-         255,
-      },
-
-      {
-         TEST_CONTEXT("bad length in data > 255 (with ptr_offset)"),
-         "\77"s + std::string(077, 'w') +
-         "\77"s + std::string(077, 'a') +
-         "\77"s + std::string(077, 'b') +
-         "\75"s + std::string(075, 'c') + "\300\55ABCD"s,
-
-         exception_info<dns::exception::bad_data_stream>("length too long"s, 1),
-         "",
-         0,
-         255,
+         {
+            { exception_info(), "www.yahoo.com", 15, },
+            { exception_info(), "www.yahoo.com", 30, },
+            { exception_info(), "www.yahoo.com", 32, },
+            { exception_info(), "www.yahoo.com", 34, },
+         },
       },
 
       {
          TEST_CONTEXT("bad length in data (first label > 63)"),
-         "\100www\5yahoo\3com\0ABCD"s,
+         0, "\100www\5yahoo\3com\0ABCD"s,
 
-         exception_info<dns::exception::bad_data_stream>("length too long"s, 2),
-         "",
-         0,
-         0,
+         {
+            { exception_info<dns::exception::bad_data_stream>("length too long"s, 2), "", 1, },
+         },
       },
 
       {
          TEST_CONTEXT("bad length in data (middle label > 63)"),
-         "\3www\100yahoo\3com\0ABCD"s,
+         0, "\3www\100yahoo\3com\0ABCD"s,
 
-         exception_info<dns::exception::bad_data_stream>("length too long"s, 2),
-         "",
-         0,
-         4,
+         {
+            { exception_info<dns::exception::bad_data_stream>("length too long"s, 2), "", 5, },
+         },
       },
 
       {
          TEST_CONTEXT("truncated data from middle of label"),
-         "\3www\5ya"s,
-         exception_info<dns::exception::bad_data_stream>("truncated"s, 2),
-         "",
-         0,
-         7,
+         0, "\3www\5ya"s,
+         {
+            { exception_info<dns::exception::bad_data_stream>("truncated"s, 2), "", 7, },
+         },
       },
 
       {
          TEST_CONTEXT("truncated data (missing null)"),
-         "\3www\5yahoo\3com"s,
-         exception_info<dns::exception::bad_data_stream>("truncated"s, 2),
-         "",
-         0,
-         14,
+         0, "\3www\5yahoo\3com"s,
+
+         {
+            { exception_info<dns::exception::bad_data_stream>("truncated"s, 2), "", 14, },
+         },
       },
 
       {
-         TEST_CONTEXT("truncated data (missing ptr_offset)"),
-         "\3www\5yahoo\3com\301"s,
-         exception_info<dns::exception::bad_data_stream>("truncated"s, 2),
-         "",
-         0,
-         15,
+         TEST_CONTEXT("truncated data (missing second byte of ptr_offset)"),
+         0, "\3www\5yahoo\3com\301"s,
+
+         {
+            { exception_info<dns::exception::bad_data_stream>("truncated"s, 2), "", 15, },
+         },
       },
-#endif
    };
 
    /////////////////////////////////////////////////////
@@ -563,7 +500,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
          auto&& e = Datum.input_raw_data.end();
          auto&& tr = dns::name_offset_tracker_t{Datum.input_initial_offset};
 
-         for(auto&& expected : Datum.expected)
+         for(auto && expected : Datum.expected)
          {
             if(expected.exception)
             {

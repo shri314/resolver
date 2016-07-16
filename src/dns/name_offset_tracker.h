@@ -1,9 +1,11 @@
 #pragma once
 
+#include <boost/bimap.hpp>
+#include <boost/bimap/multiset_of.hpp>
+
 #include <utility>
 #include <string>
 #include <experimental/optional>
-#include <boost/bimap.hpp>
 
 namespace dns
 {
@@ -15,23 +17,23 @@ namespace dns
          {
          }
 
-         template<class T>
-         auto find_offset(T&& k) const
+         template<class Str>
+         auto find_offset(Str&& str) const
          {
-            auto&& i = m_name_offset_assoc.left.find(std::forward<T>(k));
+            auto&& i = m_offset_name_assoc.right.find(std::forward<Str>(str));
 
-            if(i != m_name_offset_assoc.left.end())
+            if(i != m_offset_name_assoc.right.end())
                return std::experimental::optional < decltype(i->second) > {i->second};
             else
                return std::experimental::optional < decltype(i->second) > {};
          }
 
-         template<class T>
-         auto find_name(T&& k) const
+         template<class Off>
+         auto find_name(Off&& off) const
          {
-            auto&& i = m_name_offset_assoc.right.find(std::forward<T>(k));
+            auto&& i = m_offset_name_assoc.left.find(std::forward<Off>(off));
 
-            if(i != m_name_offset_assoc.right.end())
+            if(i != m_offset_name_assoc.left.end())
                return std::experimental::optional < decltype(i->second) > {i->second};
             else
                return std::experimental::optional < decltype(i->second) > {};
@@ -42,35 +44,35 @@ namespace dns
             return m_current_offset;
          }
 
-         void increment_offset(int amount = 1)
+         void increment_offset()
          {
-            m_current_offset += amount;
+            ++m_current_offset;
          }
 
-         template<class T>
-         void save_offset_of(T&& k)
+         template<class Str>
+         void save_offset_of(Str&& str)
          {
-            m_name_offset_assoc.insert(
-               decltype(m_name_offset_assoc)::value_type(
-                  std::forward<T>(k),
-                  m_current_offset
+            m_offset_name_assoc.insert(
+               decltype(m_offset_name_assoc)::value_type(
+                  m_current_offset,
+                  std::forward<Str>(str)
                )
             );
          }
 
-         template<class T, class U>
-         void insert(T&& k, U&& u)
+         template<class Off, class Str>
+         void insert(Off&& off, Str&& v)
          {
-            m_name_offset_assoc.insert(
-               decltype(m_name_offset_assoc)::value_type(
-                  std::forward<U>(u),
-                  std::forward<T>(k)
+            m_offset_name_assoc.insert(
+               decltype(m_offset_name_assoc)::value_type(
+                  std::forward<Off>(off),
+                  std::forward<Str>(v)
                )
             );
          }
 
       private:
          uint16_t m_current_offset = 0;
-         boost::bimap< std::string, uint16_t > m_name_offset_assoc;
+         boost::bimap< uint16_t, boost::bimaps::multiset_of<std::string> > m_offset_name_assoc;
    };
 }

@@ -111,6 +111,7 @@ namespace dns
 
             if(auto && f = tr.find_name(*ptr_offset))
             {
+               name_parts.emplace_back( *ptr_offset, *f );
                term_found = true;
             }
             else
@@ -136,7 +137,7 @@ namespace dns
             }
             else
             {
-               name_parts.emplace_back( tr.current_offset(), "" );
+               name_parts.emplace_back( tr.current_offset() - 1, "" );
                name_parts.back().second.reserve(sz);
                rem_labelchars = sz;
             }
