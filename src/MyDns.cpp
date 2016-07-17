@@ -70,9 +70,8 @@ void basic_dns(int argc, char** argv)
          auto&& e = recv_buffer.end();
          auto&& tr = dns::name_offset_tracker_t{};
 
-         auto&& h = dns::header_t{};
+         auto&& h = dns::load_from<dns::header_t>(tr, b, e);
          {
-            dns::load_from(tr, b, e, h);
             std::cout << "S: HD: " << h << "\n";
          }
 
@@ -80,8 +79,7 @@ void basic_dns(int argc, char** argv)
          {
             try
             {
-               auto&& q = dns::question_t{};
-               dns::load_from(tr, b, e, q);
+               auto&& q = dns::load_from<dns::question_t>(tr, b, e);
                std::cout << "S: QD: " << q << "\n";
             }
             catch(...)
@@ -93,8 +91,7 @@ void basic_dns(int argc, char** argv)
          {
             try
             {
-               auto&& r = dns::record_t{};
-               dns::load_from(tr, b, e, r);
+               auto&& r = dns::load_from<dns::record_t>(tr, b, e);
                std::cout << "S: AN: " << r << "\n";
             }
             catch(...)
@@ -106,8 +103,7 @@ void basic_dns(int argc, char** argv)
          {
             try
             {
-               auto&& r = dns::record_t{};
-               dns::load_from(tr, b, e, r);
+               auto&& r = dns::load_from<dns::record_t>(tr, b, e);
                std::cout << "S: NS: " << r << "\n";
             }
             catch(...)
@@ -119,8 +115,7 @@ void basic_dns(int argc, char** argv)
          {
             try
             {
-               auto&& r = dns::record_t{};
-               dns::load_from(tr, b, e, r);
+               auto&& r = dns::load_from<dns::record_t>(tr, b, e);
                std::cout << "S: AR: " << r << "\n";
             }
             catch(...)

@@ -37,21 +37,20 @@ namespace dns
          {
             name_offset_tracker_t tr;
 
-            dns::load_from(tr, cur_pos, end, m_header);
-
+            m_header = dns::load_from<dns::header_t>(tr, cur_pos, end);
             m_question.resize( m_header.QDCount() );
             m_answer.resize( m_header.ANCount() );
             m_authority.resize( m_header.NSCount() );
             m_additional.resize( m_header.ARCount() );
 
-            for(auto&& q : m_question)
-               dns::load_from(tr, cur_pos, end, q);
-            for(auto&& r : m_answer)
-               dns::load_from(tr, cur_pos, end, r);
-            for(auto&& r : m_authority)
-               dns::load_from(tr, cur_pos, end, r);
-            for(auto&& r : m_additional)
-               dns::load_from(tr, cur_pos, end, r);
+            for(auto& q : m_question)
+               q = dns::load_from<dns::question_t>(tr, cur_pos, end);
+            for(auto& r : m_answer)
+               r = dns::load_from<dns::record_t>(tr, cur_pos, end);
+            for(auto& r : m_authority)
+               r = dns::load_from<dns::record_t>(tr, cur_pos, end);
+            for(auto& r : m_additional)
+               r = dns::load_from<dns::record_t>(tr, cur_pos, end);
 
             return cur_pos;
          }

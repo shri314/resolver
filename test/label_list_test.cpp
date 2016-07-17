@@ -409,7 +409,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
          {
             if(expected.exception)
             {
-               BOOST_CHECK_EXCEPTION(dns::load_from(tr, b, e, *pLL), std::exception, expected.exception); // THE TEST
+               BOOST_CHECK_EXCEPTION(*pLL = dns::load_from<dns::label_list_t>(tr, b, e), std::exception, expected.exception); // THE TEST
 
                BOOST_CHECK(0 <= std::distance(Datum.input_raw_data.begin(), b) && std::distance(Datum.input_raw_data.begin(), b) <= expected.distance);
 
@@ -417,7 +417,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
             }
             else
             {
-               BOOST_CHECK_NO_THROW(dns::load_from(tr, b, e, *pLL)); // THE TEST
+               BOOST_CHECK_NO_THROW(*pLL = dns::load_from<dns::label_list_t>(tr, b, e)); // THE TEST
 
                BOOST_CHECK_EQUAL(std::distance(Datum.input_raw_data.begin(), b), expected.distance);
 

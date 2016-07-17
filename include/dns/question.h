@@ -49,20 +49,6 @@ namespace dns
             return os << "{ Name=" << rhs.Name() << ", Type=" << rhs.Type() << ", Class=" << rhs.Class() << " }";
          }
 
-         template<class InputIterator>
-         InputIterator load_from(InputIterator cur_pos, InputIterator end)
-         {
-            auto&& next = [&cur_pos, end]()
-            {
-               if(cur_pos != end)
-                  return static_cast<uint8_t>(*cur_pos++);
-
-               throw dns::exception::bad_data_stream("truncated", 1);
-            };
-
-            return cur_pos;
-         }
-
       private:
          std::string m_qname;
          rr_type_t m_type = rr_type_t::rec_a;
@@ -76,25 +62,19 @@ namespace dns
       save_to(tr, static_cast<uint16_t>(q.Class()));
    }
 
-   template<class InputIterator>
-   void load_from(name_offset_tracker_t& tr, InputIterator& i, InputIterator end, question_t& q)
+   template<>
+   struct LoadImpl<question_t>
    {
+      template<class InputIterator>
+      static question_t impl(name_offset_tracker_t& tr, InputIterator& ii, InputIterator end)
       {
-         label_list_t ll;
-         load_from(tr, i, end, ll);
-         q.Name(ll.Name());
-      }
+         question_t q{};
 
-      {
-         uint16_t v;
-         load_from(tr, i, end, v);
-         q.Type(static_cast<rr_type_t>(v));
-      }
+         q.Name(load_from<label_list_t>(tr, ii, end).Name());
+         q.Type(static_cast<rr_type_t>(load_from<uint16_t>(tr, ii, end)));
+         q.Class(static_cast<rr_class_t>(load_from<uint16_t>(tr, ii, end)));
 
-      {
-         uint16_t v;
-         load_from(tr, i, end, v);
-         q.Class(static_cast<rr_class_t>(v));
+         return q;
       }
-   }
+   };
 }

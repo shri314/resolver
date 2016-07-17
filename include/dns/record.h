@@ -104,49 +104,32 @@ namespace dns
          save_to(tr, static_cast<uint8_t>(c));
    }
 
-   template<class InputIterator>
-   void load_from(name_offset_tracker_t& tr, InputIterator& ii, InputIterator end, record_t& r)
+   template<>
+   struct LoadImpl<record_t>
    {
+      template<class InputIterator>
+      static record_t impl(name_offset_tracker_t& tr, InputIterator& ii, InputIterator end)
       {
-         label_list_t ll;
-         load_from(tr, ii, end, ll);
-         r.Name(ll.Name());
-      }
+         record_t r{};
 
-      {
-         uint16_t v;
-         load_from(tr, ii, end, v);
-         r.Type(static_cast<rr_type_t>(v));
-      }
-
-      {
-         uint16_t v;
-         load_from(tr, ii, end, v);
-         r.Class(static_cast<rr_class_t>(v));
-      }
-
-      {
-         uint32_t v;
-         load_from(tr, ii, end, v);
-         r.TTL(v);
-      }
-
-      {
-         uint16_t sz;
-         load_from(tr, ii, end, sz);
-
-         std::string record_data;
-         record_data.reserve(sz);
-
-         for(auto&& i = 0; i < sz; ++i)
          {
-            uint8_t c;
-            load_from(tr, ii, end, c);
-            
-            record_data.push_back(c);
+            r.Name(load_from<label_list_t>(tr, ii, end).Name());
+            r.Type(static_cast<rr_type_t>(load_from<uint16_t>(tr, ii, end)));
+            r.Class(static_cast<rr_class_t>(load_from<uint16_t>(tr, ii, end)));
+            r.TTL(load_from<uint32_t>(tr, ii, end));
          }
 
-         r.Data(record_data);
+         {
+            std::string record_data;
+            record_data.resize( load_from<uint16_t>(tr, ii, end) );
+
+            for(auto& c : record_data)
+               c = load_from<uint8_t>(tr, ii, end);
+
+            r.Data(std::move(record_data));
+         }
+
+         return r;
       }
-   }
+   };
 }

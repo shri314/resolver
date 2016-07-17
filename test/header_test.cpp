@@ -482,7 +482,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
 
             dns::name_offset_tracker_t tr;
 
-            BOOST_CHECK_EXCEPTION( dns::load_from(tr, b, e, *pH), std::exception, Datum.expected_exception); // THE TEST
+            BOOST_CHECK_EXCEPTION( *pH = dns::load_from<dns::header_t>(tr, b, e), std::exception, Datum.expected_exception); // THE TEST
 
             BOOST_CHECK(0 <= std::distance(Datum.input_raw_data.begin(), b) && std::distance(Datum.input_raw_data.begin(), b) <= Datum.expected_distance);
          }
@@ -493,7 +493,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
 
             dns::name_offset_tracker_t tr;
 
-            BOOST_CHECK_NO_THROW( dns::load_from(tr, b, e, *pH)); // THE TEST
+            BOOST_CHECK_NO_THROW( *pH = dns::load_from<dns::header_t>(tr, b, e)); // THE TEST
 
             BOOST_CHECK_EQUAL(std::distance(Datum.input_raw_data.begin(), b), Datum.expected_distance);
 

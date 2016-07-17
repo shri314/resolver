@@ -247,64 +247,46 @@ namespace dns
       save_to(tr, h.ArCount());
    }
 
-   template<class InputIterator>
-   void load_from(name_offset_tracker_t& tr, InputIterator& i, InputIterator end, header_t& h)
+   template<>
+   struct LoadImpl<header_t>
    {
+      template<class InputIterator>
+      static header_t impl(name_offset_tracker_t& tr, InputIterator& ii, InputIterator end)
       {
-         uint16_t v;
-         load_from(tr, i, end, v);
+         header_t h{};
 
-         h.ID(v);
+         {
+            h.ID(load_from<uint16_t>(tr, ii, end));
+         }
+
+         {
+            uint8_t v = load_from<uint8_t>(tr, ii, end);
+
+            h.QR_Flag((v & 0x80) == 0x80 ? true : false);
+            h.OpCode(static_cast<op_code_t>((v >> 3) & 0xF));
+            h.AA_Flag((v & 0x04) == 0x04 ? true : false);
+            h.TC_Flag((v & 0x02) == 0x02 ? true : false);
+            h.RD_Flag((v & 0x01) == 0x01 ? true : false);
+         }
+
+         {
+            uint8_t v = load_from<uint8_t>(tr, ii, end);
+
+            h.RA_Flag((v & 0x80) == 0x80 ? true : false);
+            h.Res1_Flag((v & 0x40) == 0x40 ? true : false);
+            h.AD_Flag((v & 0x20) == 0x20 ? true : false);
+            h.CD_Flag((v & 0x10) == 0x10 ? true : false);
+            h.RCode(static_cast<r_code_t>(v & 0xF));
+         }
+
+         {
+            h.QdCount(load_from<uint16_t>(tr, ii, end));
+            h.AnCount(load_from<uint16_t>(tr, ii, end));
+            h.NsCount(load_from<uint16_t>(tr, ii, end));
+            h.ArCount(load_from<uint16_t>(tr, ii, end));
+         }
+
+         return h;
       }
-
-      {
-         uint8_t v;
-         load_from(tr, i, end, v);
-
-         h.QR_Flag( (v & 0x80) == 0x80 ? true : false );
-         h.OpCode( static_cast<op_code_t>((v >> 3) & 0xF) );
-         h.AA_Flag( (v & 0x04) == 0x04 ? true : false );
-         h.TC_Flag( (v & 0x02) == 0x02 ? true : false );
-         h.RD_Flag( (v & 0x01) == 0x01 ? true : false );
-      }
-
-      {
-         uint8_t v;
-         load_from(tr, i, end, v);
-
-         h.RA_Flag( (v & 0x80) == 0x80 ? true : false );
-         h.Res1_Flag( (v & 0x40) == 0x40 ? true : false );
-         h.AD_Flag( (v & 0x20) == 0x20 ? true : false );
-         h.CD_Flag( (v & 0x10) == 0x10 ? true : false );
-         h.RCode( static_cast<r_code_t>(v & 0xF) );
-      }
-
-      {
-         uint16_t v;
-         load_from(tr, i, end, v);
-
-         h.QdCount(v);
-      }
-
-      {
-         uint16_t v;
-         load_from(tr, i, end, v);
-
-         h.AnCount(v);
-      }
-
-      {
-         uint16_t v;
-         load_from(tr, i, end, v);
-
-         h.NsCount(v);
-      }
-
-      {
-         uint16_t v;
-         load_from(tr, i, end, v);
-
-         h.ArCount(v);
-      }
-   }
+   };
 }

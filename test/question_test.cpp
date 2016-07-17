@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
          auto&& e = Datum.input_raw_data.end();
          auto&& tr = dns::name_offset_tracker_t{};
 
-         BOOST_CHECK_NO_THROW(dns::load_from(tr, b, e, *pQ));   // THE TEST
+         BOOST_CHECK_NO_THROW(*pQ = dns::load_from<dns::question_t>(tr, b, e));   // THE TEST
 
          BOOST_CHECK_EQUAL(pQ->Name(), Datum.expected_Name);
          BOOST_CHECK_EQUAL(pQ->Type(), Datum.expected_Type);

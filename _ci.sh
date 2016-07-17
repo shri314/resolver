@@ -13,7 +13,7 @@ do
 
    export BOOST_TEST_COLOR_OUTPUT=0
 
-   make -s -C build  2>&1 | head -15 | paint
+   make -s -C build/test all 2>&1 | head -15 | paint
    if [ ${PIPESTATUS[0]} -ne 0 ]
    then
       sleep 5
@@ -21,7 +21,7 @@ do
       continue
    fi
 
-   make -s -C build/test all 2>&1 | head -15 | paint
+   make -s -C build  2>&1 | head -15 | paint
    if [ ${PIPESTATUS[0]} -ne 0 ]
    then
       sleep 5

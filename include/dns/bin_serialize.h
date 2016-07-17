@@ -27,49 +27,59 @@ namespace dns
       save_to(tr, static_cast<uint8_t>((x >> 0) & 0xFF));
    }
 
-   template<class InputIterator>
-   void load_from(name_offset_tracker_t& tr, InputIterator& i, InputIterator end, uint8_t& x)
+   template<class T>
+   struct LoadImpl;
+
+   template<class T, class InputIterator>
+   T load_from(name_offset_tracker_t& tr, InputIterator& ii, InputIterator end)
    {
-      if(i != end)
+      return LoadImpl<T>::impl(tr, ii, end);
+   }
+
+   template<>
+   struct LoadImpl<uint8_t>
+   {
+      template<class InputIterator>
+      static uint8_t impl(name_offset_tracker_t& tr, InputIterator& ii, InputIterator end)
       {
-         x = static_cast<uint8_t>(*i++);
-         tr.save(x);
+         if(ii != end)
+         {
+            return tr.save(static_cast<uint8_t>(*ii++));
+         }
+         else
+            throw dns::exception::bad_data_stream("truncated", 1);
       }
-      else
-         throw dns::exception::bad_data_stream("truncated", 1);
-   }
+   };
 
-   template<class InputIterator>
-   void load_from(name_offset_tracker_t& tr, InputIterator& i, InputIterator end, uint16_t& x)
+   template<>
+   struct LoadImpl<uint16_t>
    {
-      uint8_t x1;
-      load_from(tr, i, end, x1);
+      template<class InputIterator>
+      static uint16_t impl(name_offset_tracker_t& tr, InputIterator& ii, InputIterator end)
+      {
+         uint8_t x1 = load_from<uint8_t>(tr, ii, end);
+         uint8_t x2 = load_from<uint8_t>(tr, ii, end);
 
-      uint8_t x2;
-      load_from(tr, i, end, x2);
+         return (static_cast<uint16_t>(x1) << 8) |
+                (static_cast<uint16_t>(x2));
+      }
+   };
 
-      x = (static_cast<uint16_t>(x1) << 8) |
-          (static_cast<uint16_t>(x2));
-   }
-
-   template<class InputIterator>
-   void load_from(name_offset_tracker_t& tr, InputIterator& i, InputIterator end, uint32_t& x)
+   template<>
+   struct LoadImpl<uint32_t>
    {
-      uint8_t x1;
-      load_from(tr, i, end, x1);
+      template<class InputIterator>
+      static uint32_t impl(name_offset_tracker_t& tr, InputIterator& ii, InputIterator end)
+      {
+         uint8_t x1 = load_from<uint8_t>(tr, ii, end);
+         uint8_t x2 = load_from<uint8_t>(tr, ii, end);
+         uint8_t x3 = load_from<uint8_t>(tr, ii, end);
+         uint8_t x4 = load_from<uint8_t>(tr, ii, end);
 
-      uint8_t x2;
-      load_from(tr, i, end, x2);
-
-      uint8_t x3;
-      load_from(tr, i, end, x3);
-
-      uint8_t x4;
-      load_from(tr, i, end, x4);
-
-      x = (static_cast<uint16_t>(x1) << 24) |
-          (static_cast<uint16_t>(x2) << 16) |
-          (static_cast<uint16_t>(x3) << 8) |
-          (static_cast<uint16_t>(x4));
-   }
+         return (static_cast<uint16_t>(x1) << 24) |
+                (static_cast<uint16_t>(x2) << 16) |
+                (static_cast<uint16_t>(x3) << 8) |
+                (static_cast<uint16_t>(x4));
+      }
+   };
 }

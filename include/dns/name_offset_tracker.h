@@ -54,9 +54,10 @@ namespace dns
             return std::back_inserter(m_store);
          }
 
-         void save(uint8_t c)
+         uint8_t save(uint8_t c)
          {
             m_store.push_back(c);
+            return c;
          }
 
          void clear()
