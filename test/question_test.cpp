@@ -61,13 +61,11 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
          BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pQ).str(), Datum.expected_stream);
 
          {
-            auto&& store = std::vector<uint8_t> {};
-            auto&& o = std::back_inserter(store);
             auto&& tr = dns::name_offset_tracker_t{};
 
-            BOOST_CHECK_NO_THROW(dns::save_to(tr, o, *pQ));
+            BOOST_CHECK_NO_THROW(dns::save_to(tr, *pQ));
 
-            BOOST_CHECK_EQUAL(util::oct_dump(store), util::oct_dump(Datum.expected_raw_data));
+            BOOST_CHECK_EQUAL(util::oct_dump(tr.store()), util::oct_dump(Datum.expected_raw_data));
          }
       }
    }

@@ -8,27 +8,23 @@
 
 namespace dns
 {
-   template<class OutputIterator>
-   void save_to(name_offset_tracker_t& tr, OutputIterator& o, uint8_t x)
+   void save_to(name_offset_tracker_t& tr, uint8_t x)
    {
-      *o++ = x;
-      tr.increment_offset();
+      tr.save(x);
    }
 
-   template<class OutputIterator>
-   void save_to(name_offset_tracker_t& tr, OutputIterator& o, uint16_t x)
+   void save_to(name_offset_tracker_t& tr, uint16_t x)
    {
-      save_to(tr, o, static_cast<uint8_t>((x >> 8) & 0xFF));
-      save_to(tr, o, static_cast<uint8_t>((x >> 0) & 0xFF));
+      save_to(tr, static_cast<uint8_t>((x >> 8) & 0xFF));
+      save_to(tr, static_cast<uint8_t>((x >> 0) & 0xFF));
    }
 
-   template<class OutputIterator>
-   void save_to(name_offset_tracker_t& tr, OutputIterator& o, uint32_t x)
+   void save_to(name_offset_tracker_t& tr, uint32_t x)
    {
-      save_to(tr, o, static_cast<uint8_t>((x >> 24) & 0xFF));
-      save_to(tr, o, static_cast<uint8_t>((x >> 16) & 0xFF));
-      save_to(tr, o, static_cast<uint8_t>((x >> 8) & 0xFF));
-      save_to(tr, o, static_cast<uint8_t>((x >> 0) & 0xFF));
+      save_to(tr, static_cast<uint8_t>((x >> 24) & 0xFF));
+      save_to(tr, static_cast<uint8_t>((x >> 16) & 0xFF));
+      save_to(tr, static_cast<uint8_t>((x >> 8) & 0xFF));
+      save_to(tr, static_cast<uint8_t>((x >> 0) & 0xFF));
    }
 
    template<class InputIterator>
@@ -37,7 +33,7 @@ namespace dns
       if(i != end)
       {
          x = static_cast<uint8_t>(*i++);
-         tr.increment_offset();
+         tr.save(x);
       }
       else
          throw dns::exception::bad_data_stream("truncated", 1);

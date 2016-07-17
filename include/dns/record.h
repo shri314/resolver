@@ -92,17 +92,16 @@ namespace dns
          std::string m_record_data;
    };
 
-   template<class OutputIterator>
-   void save_to(name_offset_tracker_t& tr, OutputIterator& oi, const record_t& r)
+   inline void save_to(name_offset_tracker_t& tr, const record_t& r)
    {
-      save_to(tr, oi, label_list_t{r.Name()});
-      save_to(tr, oi, static_cast<uint16_t>(r.Type()));
-      save_to(tr, oi, static_cast<uint16_t>(r.Class()));
-      save_to(tr, oi, r.TTL());
-      save_to(tr, oi, static_cast<uint16_t>(r.DataLength()));
+      save_to(tr, label_list_t{r.Name()});
+      save_to(tr, static_cast<uint16_t>(r.Type()));
+      save_to(tr, static_cast<uint16_t>(r.Class()));
+      save_to(tr, r.TTL());
+      save_to(tr, static_cast<uint16_t>(r.DataLength()));
 
       for(auto& c : r.Data())
-         save_to(tr, oi, static_cast<uint8_t>(c));
+         save_to(tr, static_cast<uint8_t>(c));
    }
 
    template<class InputIterator>

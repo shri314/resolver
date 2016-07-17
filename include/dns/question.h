@@ -69,12 +69,11 @@ namespace dns
          rr_class_t m_class = rr_class_t::internet;
    };
 
-   template<class OutputIterator>
-   void save_to(name_offset_tracker_t& tr, OutputIterator& o, const question_t& q)
+   inline void save_to(name_offset_tracker_t& tr, const question_t& q)
    {
-      save_to(tr, o, label_list_t{q.Name()});
-      save_to(tr, o, static_cast<uint16_t>(q.Type()));
-      save_to(tr, o, static_cast<uint16_t>(q.Class()));
+      save_to(tr, label_list_t{q.Name()});
+      save_to(tr, static_cast<uint16_t>(q.Type()));
+      save_to(tr, static_cast<uint16_t>(q.Class()));
    }
 
    template<class InputIterator>

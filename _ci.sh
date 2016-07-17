@@ -47,5 +47,7 @@ do
       continue
    fi
 
+   ./build/mydig 20.10.1.1
+   rm -f core.*
    sleep 3;
 done

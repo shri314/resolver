@@ -12,8 +12,8 @@ namespace dns
    class name_offset_tracker_t
    {
       public:
-         name_offset_tracker_t(uint16_t offset = 0)
-            : m_current_offset(offset)
+         explicit name_offset_tracker_t(uint16_t initial_offset = 0)
+            : m_initial_offset(initial_offset)
          {
          }
 
@@ -39,14 +39,30 @@ namespace dns
                return std::experimental::optional < decltype(i->second) > {};
          }
 
-         auto current_offset() const
+         uint16_t current_offset() const
          {
-            return m_current_offset;
+            return m_initial_offset + m_store.size();
          }
 
-         void increment_offset()
+         const std::vector<uint8_t>& store() const
          {
-            ++m_current_offset;
+            return m_store;
+         }
+
+         auto store_bi()
+         {
+            return std::back_inserter(m_store);
+         }
+
+         void save(uint8_t c)
+         {
+            m_store.push_back(c);
+         }
+
+         void clear()
+         {
+            m_store.clear();
+            m_offset_name_assoc.clear();
          }
 
          template<class Str>
@@ -54,7 +70,7 @@ namespace dns
          {
             m_offset_name_assoc.insert(
                decltype(m_offset_name_assoc)::value_type(
-                  m_current_offset,
+                  current_offset(),
                   std::forward<Str>(str)
                )
             );
@@ -72,7 +88,8 @@ namespace dns
          }
 
       private:
-         uint16_t m_current_offset = 0;
          boost::bimap< uint16_t, boost::bimaps::multiset_of<std::string> > m_offset_name_assoc;
+         std::vector<uint8_t> m_store;
+         uint16_t m_initial_offset = 0;
    };
 }

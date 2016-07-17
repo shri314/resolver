@@ -14,22 +14,22 @@ namespace dns
    {
       public:
          template<class OutputIterator>
-         OutputIterator save_to(OutputIterator o)
+         void save_to(OutputIterator o)
          {
             name_offset_tracker_t tr;
 
-            dns::save_to(tr, o, m_header);
+            dns::save_to(tr, m_header);
 
             for(auto&& q : m_question)
-               dns::save_to(tr, o, q);
+               dns::save_to(tr, q);
             for(auto&& r : m_answer)
-               dns::save_to(tr, o, r);
+               dns::save_to(tr, r);
             for(auto&& r : m_authority)
-               dns::save_to(tr, o, r);
+               dns::save_to(tr, r);
             for(auto&& r : m_additional)
-               dns::save_to(tr, o, r);
+               dns::save_to(tr, r);
 
-            return o;
+            std::copy(tr.store().begin(), tr.store().end(), o);
          }
 
          template<class InputIterator>

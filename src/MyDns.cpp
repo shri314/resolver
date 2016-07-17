@@ -200,11 +200,12 @@ void basic_dns(int argc, char** argv)
             std::cout << "C: HD: " << h << "\n";
             std::cout << "C: QD: " << q << "\n";
 
-            auto&& oi = std::back_inserter(write_buffer);
             auto&& tr = dns::name_offset_tracker_t{};
+            dns::save_to(tr, h);
+            dns::save_to(tr, q);
 
-            dns::save_to(tr, oi, h);
-            dns::save_to(tr, oi, q);
+            auto&& oi = std::back_inserter(write_buffer);
+            std::copy( tr.store().begin(), tr.store().end(), oi );
          }
 
          write_buffer[0] = ((write_buffer.size() - 2) & 0xFF00) >> 8;

@@ -217,17 +217,13 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
          }
 
          {
-            std::vector<uint8_t> store;
-
             {
-               auto&& o = std::back_inserter(store);
+               auto&& temp_tr = dns::name_offset_tracker_t{};
 
-               dns::name_offset_tracker_t tr;
+               BOOST_CHECK_NO_THROW(save_to(temp_tr, *pH));   // TEST
 
-               BOOST_CHECK_NO_THROW(save_to(tr, o, *pH));   // TEST
+               BOOST_CHECK_EQUAL(util::oct_dump(temp_tr.store()), util::oct_dump(Datum.expected_raw_data));
             }
-
-            BOOST_CHECK_EQUAL(util::oct_dump(store), util::oct_dump(Datum.expected_raw_data));
 
             BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pH).str(), Datum.expected_stream));
          }
@@ -501,17 +497,13 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
 
             BOOST_CHECK_EQUAL(std::distance(Datum.input_raw_data.begin(), b), Datum.expected_distance);
 
-            std::vector<uint8_t> store;
-
             {
-               auto&& o = std::back_inserter(store);
+               auto&& temp_tr = dns::name_offset_tracker_t{};
 
-               dns::name_offset_tracker_t tr;
+               BOOST_CHECK_NO_THROW(save_to(temp_tr, *pH));
 
-               BOOST_CHECK_NO_THROW(save_to(tr, o, *pH));
+               BOOST_CHECK_EQUAL(util::oct_dump(temp_tr.store()), util::oct_dump(Datum.input_raw_data.substr(0, Datum.expected_distance)));
             }
-
-            BOOST_CHECK_EQUAL(util::oct_dump(store), util::oct_dump(Datum.input_raw_data.substr(0, Datum.expected_distance)));
 
             BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pH).str(), Datum.expected_stream));
 

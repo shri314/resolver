@@ -220,10 +220,6 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
          if(boost::algorithm::contains(Datum.test_context, "GDB:"))
             BOOST_TEST_MESSAGE(getpid()), sleep(30);
 
-         std::string store;
-
-         auto&& o = std::back_inserter(store);
-
          dns::name_offset_tracker_t tr{Datum.input_prefill_offset};
 
          {
@@ -239,7 +235,7 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
 
                BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pLL).str(), "[" + input + "]");
 
-               BOOST_CHECK_NO_THROW(dns::save_to(tr, o, *pLL));   // THE TEST (PART 1)
+               BOOST_CHECK_NO_THROW(dns::save_to(tr, *pLL));   // THE TEST (PART 1)
             }
          }
 
@@ -256,14 +252,14 @@ BOOST_AUTO_TEST_CASE(dns_save_to)
 
             if(Datum.expected_exception)
             {
-               BOOST_CHECK_EXCEPTION(dns::save_to(tr, o, *pLL), std::exception, Datum.expected_exception);   // THE TEST (PART 2)
+               BOOST_CHECK_EXCEPTION(dns::save_to(tr, *pLL), std::exception, Datum.expected_exception);   // THE TEST (PART 2)
             }
             else
             {
-               BOOST_CHECK_NO_THROW(dns::save_to(tr, o, *pLL));   // THE TEST (PART 2)
+               BOOST_CHECK_NO_THROW(dns::save_to(tr, *pLL));   // THE TEST (PART 2)
             }
 
-            BOOST_CHECK_EQUAL(util::oct_dump(store), util::oct_dump(Datum.expected_raw_data));
+            BOOST_CHECK_EQUAL(util::oct_dump(tr.store()), util::oct_dump(Datum.expected_raw_data));
          }
       }
    }

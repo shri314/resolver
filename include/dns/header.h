@@ -223,29 +223,28 @@ namespace dns
          uint16_t m_ArCount = 0;
    };
 
-   template<class OutputIterator>
-   void save_to(name_offset_tracker_t& tr, OutputIterator& o, const header_t& h)
+   inline void save_to(name_offset_tracker_t& tr, const header_t& h)
    {
-      save_to(tr, o, h.ID());
+      save_to(tr, h.ID());
 
-      save_to(tr, o, static_cast<uint8_t>(
+      save_to(tr, static_cast<uint8_t>(
                  (h.QR_Flag() ? 0x80 : 0) |
                  ((static_cast<uint8_t>(h.OpCode()) & 0xF) << 3) |
                  (h.AA_Flag() ? 0x04 : 0) |
                  (h.TC_Flag() ? 0x02 : 0) |
                  (h.RD_Flag() ? 0x01 : 0)));
 
-      save_to(tr, o, static_cast<uint8_t>(
+      save_to(tr, static_cast<uint8_t>(
                  (h.RA_Flag() ? 0x80 : 0) |
                  (h.Res1_Flag() ? 0x40 : 0) |
                  (h.AD_Flag() ? 0x20 : 0) |
                  (h.CD_Flag() ? 0x10 : 0) |
                  (static_cast<uint8_t>(h.RCode()) & 0xF)));
 
-      save_to(tr, o, h.QdCount());
-      save_to(tr, o, h.AnCount());
-      save_to(tr, o, h.NsCount());
-      save_to(tr, o, h.ArCount());
+      save_to(tr, h.QdCount());
+      save_to(tr, h.AnCount());
+      save_to(tr, h.NsCount());
+      save_to(tr, h.ArCount());
    }
 
    template<class InputIterator>
