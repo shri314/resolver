@@ -58,6 +58,8 @@ namespace dns
             return os << "nx_rrset";
          case r_code_t::not_auth:
             return os << "not_auth";
+         case r_code_t::not_zone:
+            return os << "not_zone";
          case r_code_t::bad_vers:
             return os << "bad_vers|bad_sig";
          case r_code_t::bad_key:

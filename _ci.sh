@@ -47,7 +47,7 @@ do
       continue
    fi
 
-   ./build/mydig 20.10.1.1
+   ./build/mydig $(awk '/^nameserver/ { print $2 ; exit; }' /etc/resolv.conf)
    rm -f core.*
    sleep 3;
 done

@@ -8,7 +8,9 @@
 #include "dns/exception/bad_ptr_offset.h"
 #include "dns/exception/bad_name.h"
 #include "dns/bin_serialize.h"
+
 #include "util/split2_at.h"
+#include "util/name_builder.h"
 
 namespace dns
 {
@@ -98,7 +100,7 @@ namespace dns
          auto&& term_found = false;
          auto&& rem_labelchars = uint8_t{0};
          auto&& ptr_offset = std::experimental::optional<uint16_t> {};
-         auto&& name_parts = std::vector<std::pair<uint16_t, std::string>> {};
+         auto&& nb = util::name_builder{'.'};
 
          while(ii != end && !term_found)
          {
@@ -110,13 +112,26 @@ namespace dns
 
                *ptr_offset |= static_cast<uint16_t>(of);
 
-               if(auto && f = tr.find_name(*ptr_offset))
+               if( auto&& temp_tr = tr.slice(*ptr_offset) )
                {
-                  name_parts.emplace_back(*ptr_offset, *f);
-                  term_found = true;
+                  try
+                  {
+                     auto&& temp_bi = temp_tr->cbegin();
+                     auto&& temp_end = temp_tr->cend();
+                     auto&& temp_n = load_from<label_list_t>( *temp_tr, temp_bi, temp_end ).Name();
+
+                     nb.add_part(temp_n);
+
+                     term_found = true;
+                  }
+                  catch(const std::exception& e)
+                  {
+                     // FIXME - nest exception
+                  }
                }
-               else
-                  throw dns::exception::bad_data_stream("unseen offset", 1);
+
+               if(!term_found)
+                  throw dns::exception::bad_data_stream("bad offset", 1);
             }
             else if(rem_labelchars == 0)
             {
@@ -137,8 +152,8 @@ namespace dns
                }
                else
                {
-                  name_parts.emplace_back(tr.current_offset() - 1, "");
-                  name_parts.back().second.reserve(sz);
+                  nb.add_part("");
+
                   rem_labelchars = sz;
                }
             }
@@ -146,9 +161,8 @@ namespace dns
             {
                // CASE III: expected is a set of characters of a namepart (rem_labelchars chars long)
 
-               uint8_t ch = load_from<uint8_t>(tr, ii, end);
+               nb.append( load_from<uint8_t>(tr, ii, end) );
 
-               name_parts.back().second.push_back(ch);
                --rem_labelchars;
             }
          }
@@ -156,14 +170,7 @@ namespace dns
          if(!term_found)
             throw dns::exception::bad_data_stream("truncated", 2);
 
-         std::string last_entry;
-         std::for_each(name_parts.rbegin(), name_parts.rend(), [&last_entry, &tr](auto & entry)
-         {
-            last_entry = entry.second += (last_entry.empty() ? "" : ".") + last_entry;
-            tr.insert(entry.first, entry.second);
-         });
-
-         return label_list_t{last_entry};
+         return label_list_t{ std::move(nb).full_name() };
       }
    };
 }

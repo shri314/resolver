@@ -1,11 +1,9 @@
 #pragma once
 
-#include <boost/bimap.hpp>
-#include <boost/bimap/multiset_of.hpp>
-
+#include <experimental/optional>
 #include <utility>
 #include <string>
-#include <experimental/optional>
+#include <map>
 
 namespace dns
 {
@@ -13,84 +11,117 @@ namespace dns
    {
       public:
          explicit name_offset_tracker_t(uint16_t initial_offset = 0)
-            : m_initial_offset(initial_offset)
+            : m_initial_offset{initial_offset}
+            , m_end_offset(m_initial_offset)
+            , m_current_offset(m_initial_offset)
+            , m_store{ std::make_shared<std::vector<uint8_t>>(m_initial_offset) }
+            , m_name_offset_assoc{ std::make_shared<std::multimap<std::string, uint16_t>>() }
          {
          }
 
          template<class Str>
+         explicit name_offset_tracker_t(Str&& str)
+            : m_initial_offset(static_cast<uint16_t>(std::distance(std::cbegin(str), std::cend(str))))
+            , m_end_offset(m_initial_offset)
+            , m_current_offset(m_initial_offset)
+            , m_store{ std::make_shared<std::vector<uint8_t>>(std::cbegin(str), std::cbegin(str) + m_initial_offset) }
+            , m_name_offset_assoc{ std::make_shared<std::multimap<std::string, uint16_t>>() }
+         {
+         }
+
+         name_offset_tracker_t(name_offset_tracker_t&&) = default;
+         name_offset_tracker_t& operator=(name_offset_tracker_t&&) = default;
+         name_offset_tracker_t& operator=(const name_offset_tracker_t&) = delete;
+
+         template<class Str>
          auto find_offset(Str&& str) const
          {
-            auto&& i = m_offset_name_assoc.right.find(std::forward<Str>(str));
+            auto&& i = m_name_offset_assoc->find(std::forward<Str>(str));
 
-            if(i != m_offset_name_assoc.right.end())
+            if(i != m_name_offset_assoc->end())
                return std::experimental::optional < decltype(i->second) > {i->second};
             else
                return std::experimental::optional < decltype(i->second) > {};
          }
 
-         template<class Off>
-         auto find_name(Off&& off) const
+         auto slice(uint16_t ptr_offset) const
          {
-            auto&& i = m_offset_name_assoc.left.find(std::forward<Off>(off));
+            if(ptr_offset < current_offset() && current_offset() > 2)
+            {
+               return std::experimental::optional<name_offset_tracker_t>
+               {
+                  name_offset_tracker_t{
+                     *this,
+                     ptr_offset,
+                     static_cast<uint16_t>(current_offset() - 2u)
+                  }
+               };
+            }
 
-            if(i != m_offset_name_assoc.left.end())
-               return std::experimental::optional < decltype(i->second) > {i->second};
-            else
-               return std::experimental::optional < decltype(i->second) > {};
+            return std::experimental::optional<name_offset_tracker_t> {};
          }
 
          uint16_t current_offset() const
          {
-            return m_initial_offset + m_store.size();
+            return m_current_offset;
          }
 
-         const std::vector<uint8_t>& store() const
+         auto cbegin() const
          {
-            return m_store;
+            return m_store->cbegin() + m_initial_offset;
          }
 
-         auto store_bi()
+         auto cend() const
          {
-            return std::back_inserter(m_store);
+            return m_store->cbegin() + m_end_offset;
+         }
+
+         std::vector<uint8_t> store() const
+         {
+            return std::vector<uint8_t>(cbegin(), cend());
          }
 
          uint8_t save(uint8_t c)
          {
-            m_store.push_back(c);
-            return c;
-         }
+            if(!read_only())
+            {
+               m_store->push_back(c);
+               ++m_end_offset;
+            }
 
-         void clear()
-         {
-            m_store.clear();
-            m_offset_name_assoc.clear();
+            ++m_current_offset;
+
+            return c;
          }
 
          template<class Str>
          void save_offset_of(Str&& str)
          {
-            m_offset_name_assoc.insert(
-               decltype(m_offset_name_assoc)::value_type(
-                  current_offset(),
-                  std::forward<Str>(str)
-               )
-            );
+            m_name_offset_assoc->emplace(std::forward<Str>(str), current_offset());
          }
 
-         template<class Off, class Str>
-         void insert(Off&& off, Str&& v)
+         bool read_only() const
          {
-            m_offset_name_assoc.insert(
-               decltype(m_offset_name_assoc)::value_type(
-                  std::forward<Off>(off),
-                  std::forward<Str>(v)
-               )
-            );
+            return m_read_only;
          }
 
       private:
-         boost::bimap< uint16_t, boost::bimaps::multiset_of<std::string> > m_offset_name_assoc;
-         std::vector<uint8_t> m_store;
+         name_offset_tracker_t(const name_offset_tracker_t& rhs, uint16_t b_offset, uint16_t e_offset)
+            : m_read_only(true)
+            , m_initial_offset(b_offset)
+            , m_end_offset(e_offset)
+            , m_current_offset(m_initial_offset)
+            , m_store(rhs.m_store)
+            , m_name_offset_assoc(rhs.m_name_offset_assoc)
+         {
+         }
+
+      private:
+         bool m_read_only = false;
          uint16_t m_initial_offset = 0;
+         uint16_t m_end_offset = 0;
+         uint16_t m_current_offset = 0;
+         std::shared_ptr< std::vector<uint8_t> > m_store;
+         std::shared_ptr< std::multimap<std::string, uint16_t> > m_name_offset_assoc;
    };
 }

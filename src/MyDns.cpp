@@ -66,61 +66,30 @@ void basic_dns(int argc, char** argv)
       {
          // std::cout << util::oct_dump(std::string(recv_buffer.begin(), recv_buffer.begin() + sz_rx)) << "\n";
 
-         auto&& b = recv_buffer.begin();
-         auto&& e = recv_buffer.end();
-         auto&& tr = dns::name_offset_tracker_t{};
-
-         auto&& h = dns::load_from<dns::header_t>(tr, b, e);
+         try
          {
+            auto&& b = recv_buffer.begin();
+            auto&& e = recv_buffer.end();
+            auto&& tr = dns::name_offset_tracker_t{};
+
+            auto&& h = dns::load_from<dns::header_t>(tr, b, e);
             std::cout << "S: HD: " << h << "\n";
-         }
 
-         for(int i = 0; i < h.QdCount(); ++i)
-         {
-            try
-            {
-               auto&& q = dns::load_from<dns::question_t>(tr, b, e);
-               std::cout << "S: QD: " << q << "\n";
-            }
-            catch(...)
-            {
-            }
-         }
+            for(int i = 0; i < h.QdCount(); ++i)
+               std::cout << "S: QD: " << dns::load_from<dns::question_t>(tr, b, e) << "\n";
 
-         for(int i = 0; i < h.AnCount(); ++i)
-         {
-            try
-            {
-               auto&& r = dns::load_from<dns::record_t>(tr, b, e);
-               std::cout << "S: AN: " << r << "\n";
-            }
-            catch(...)
-            {
-            }
-         }
+            for(int i = 0; i < h.AnCount(); ++i)
+               std::cout << "S: AN: " << dns::load_from<dns::record_t>(tr, b, e) << "\n";
 
-         for(int i = 0; i < h.NsCount(); ++i)
-         {
-            try
-            {
-               auto&& r = dns::load_from<dns::record_t>(tr, b, e);
-               std::cout << "S: NS: " << r << "\n";
-            }
-            catch(...)
-            {
-            }
-         }
+            for(int i = 0; i < h.NsCount(); ++i)
+               std::cout << "S: NS: " << dns::load_from<dns::record_t>(tr, b, e) << "\n";
 
-         for(int i = 0; i < h.ArCount(); ++i)
+            for(int i = 0; i < h.ArCount(); ++i)
+               std::cout << "S: AR: " << dns::load_from<dns::record_t>(tr, b, e) << "\n";
+         }
+         catch(const std::exception& e)
          {
-            try
-            {
-               auto&& r = dns::load_from<dns::record_t>(tr, b, e);
-               std::cout << "S: AR: " << r << "\n";
-            }
-            catch(...)
-            {
-            }
+            std::cout << "S: XX - " << e.what() << "\n";
          }
       }
    };
@@ -170,7 +139,7 @@ void basic_dns(int argc, char** argv)
          {
             auto&& h = dns::header_t{};
             {
-               h.ID( rand() );
+               h.ID(rand());
                h.RD_Flag(true);
                h.AD_Flag(true);
                h.QdCount(1);
@@ -200,7 +169,7 @@ void basic_dns(int argc, char** argv)
             dns::save_to(tr, q);
 
             auto&& oi = std::back_inserter(write_buffer);
-            std::copy( tr.store().begin(), tr.store().end(), oi );
+            std::copy(tr.cbegin(), tr.cend(), oi);
          }
 
          write_buffer[0] = ((write_buffer.size() - 2) & 0xFF00) >> 8;

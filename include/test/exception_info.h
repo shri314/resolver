@@ -28,6 +28,8 @@ struct exception_info_t
       template<class ET>
       bool operator()(const ET& e)
       {
+         using namespace std::literals::string_literals;
+
          BOOST_CHECK_EQUAL(typeid(e).name(), type);
          BOOST_CHECK_EQUAL(e.what(), str);
 
@@ -49,7 +51,7 @@ struct exception_info_t
             return true;
          }
 
-         BOOST_TEST(false, "unexpected exception");
+         BOOST_TEST(false, "unexpected exception - E:"s + typeid(e).name() + ", M:" + e.what());
          return false;
       }
 };

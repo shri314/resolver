@@ -3,7 +3,10 @@ project (libdns)
 enable_testing()
 
 add_compile_options("-std=c++1z")
+add_compile_options("-Wall")
+add_compile_options("-Werror")
 add_compile_options("-g3")
+
 include_directories("include")
 
 set(mydig_LIBS
