@@ -5,8 +5,8 @@ PAINT=`which paint`
 
 while [ true ]
 do
-   clear
-
+   echo
+   echo
    echo --------------------------------------------
    date
    echo --------------------------------------------

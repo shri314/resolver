@@ -5,8 +5,8 @@
 
 #include "dns/op_code.h"
 #include "dns/r_code.h"
-#include "dns/name_offset_tracker.h"
-#include "dns/bin_serialize.h"
+#include "dns/detail/name_offset_tracker.h"
+#include "dns/detail/bin_serialize.h"
 
 namespace dns
 {

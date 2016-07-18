@@ -2,7 +2,10 @@
 #define BOOST_TEST_MODULE label_list_test
 #include <boost/test/unit_test.hpp>
 
-#include "dns/label_list.h"
+#include "dns/detail/label_list.h"
+#include "dns/detail/name_offset_tracker.h"
+#include "dns/detail/label_list/load_from.h"
+#include "dns/detail/label_list/save_to.h"
 
 #include "test/exception_info.h"
 #include "test/make_my_unique.h"

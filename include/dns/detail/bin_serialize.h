@@ -3,7 +3,7 @@
 #include <ostream>
 #include <string>
 
-#include "dns/name_offset_tracker.h"
+#include "dns/detail/name_offset_tracker.h"
 #include "dns/exception/bad_data_stream.h"
 
 namespace dns

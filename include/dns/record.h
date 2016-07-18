@@ -3,8 +3,10 @@
 #include "dns/rr_type.h"
 #include "dns/rr_class.h"
 
-#include "dns/name_offset_tracker.h"
-#include "dns/label_list.h"
+#include "dns/detail/name_offset_tracker.h"
+#include "dns/detail/label_list.h"
+#include "dns/detail/label_list/load_from.h"
+#include "dns/detail/label_list/save_to.h"
 
 #include <ostream>
 #include <string>
