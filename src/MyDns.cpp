@@ -79,7 +79,12 @@ void basic_dns(int argc, char** argv)
                std::cout << "S: QD: " << dns::load_from<dns::question_t>(tr, b, e) << "\n";
 
             for(int i = 0; i < h.AnCount(); ++i)
-               std::cout << "S: AN: " << dns::load_from<dns::record_t>(tr, b, e) << "\n";
+            {
+               auto&& r = dns::load_from<dns::record_t>(tr, b, e);
+               std::cout << "S: AN: " << r << "\n";
+
+               r.get_as<dns::mx_record_t>
+            }
 
             for(int i = 0; i < h.NsCount(); ++i)
                std::cout << "S: NS: " << dns::load_from<dns::record_t>(tr, b, e) << "\n";

@@ -78,7 +78,7 @@ namespace dns
          template<class RecordT>
          RecordT RecordAs() const
          {
-            return RecordT{};
+            return boost::any_cast<RecordT>(m_record_value);
          }
 
          friend std::ostream& operator<<(std::ostream& os, const record_t& rhs)
@@ -92,6 +92,7 @@ namespace dns
          rr_class_t m_class = rr_class_t::internet;
          int32_t m_TTL = 0;
          std::string m_record_data;
+         boost::any m_record_value;
    };
 
    inline void save_to(name_offset_tracker_t& tr, const record_t& r)
