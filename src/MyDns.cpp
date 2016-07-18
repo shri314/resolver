@@ -137,37 +137,31 @@ void basic_dns(int argc, char** argv)
          srand(time(0));
 
          {
-            auto&& h = dns::header_t{};
+            auto&& tr = dns::name_offset_tracker_t{};
+
             {
+               auto&& h = dns::header_t{};
+
                h.ID(rand());
                h.RD_Flag(true);
                h.AD_Flag(true);
                h.QdCount(1);
+
+               std::cout << "C: HD: " << h << "\n";
+               dns::save_to(tr, h);
             }
 
-            auto&& q = dns::question_t{};
             {
-               q.Name("www.gmail.com");
+               auto&& q = dns::question_t{};
+
+               q.Name("hotmail.com");
                q.Type(dns::rr_type_t::rec_mx);
                q.Class(dns::rr_class_t::internet);
+
+               std::cout << "C: QD: " << q << "\n";
+               dns::save_to(tr, q);
             }
-
-            auto&& r = dns::record_t{};
-            {
-               r.Name("");
-               r.Type(dns::rr_type_t::rec_opt);
-               r.Class(static_cast<dns::rr_class_t>(4096));
-               r.TTL(0);
-               r.Data("");
-            }
-
-            std::cout << "C: HD: " << h << "\n";
-            std::cout << "C: QD: " << q << "\n";
-
-            auto&& tr = dns::name_offset_tracker_t{};
-            dns::save_to(tr, h);
-            dns::save_to(tr, q);
-
+            
             auto&& oi = std::back_inserter(write_buffer);
             std::copy(tr.cbegin(), tr.cend(), oi);
          }
