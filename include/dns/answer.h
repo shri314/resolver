@@ -16,6 +16,8 @@
 #include "dns/record/rec_cname.h"
 #include "dns/record/rec_soa.h"
 
+#include "util/oct_dump.h"
+
 #include <boost/any.hpp>
 #include <ostream>
 #include <string>
@@ -23,7 +25,7 @@
 
 namespace dns
 {
-   class record_t
+   class answer_t
    {
       public:
          void Name(const std::string& name)
@@ -69,26 +71,16 @@ namespace dns
          template<class RecordT>
          RecordT Data() const
          {
-            return boost::any_cast<RecordT>(m_data);
+            return boost::any_cast<RecordT>(m_rec);
          }
 
          template<class RecordT>
          void Data(RecordT&& v)
          {
-            m_data = std::forward<RecordT>(v);
+            m_rec = std::forward<RecordT>(v);
          }
 
-         const std::string& RawData() const
-         {
-            return m_raw_data;
-         }
-
-         void RawData(std::string v)
-         {
-            m_raw_data = std::move(v);
-         }
-
-         friend std::ostream& operator<<(std::ostream& os, const record_t& rhs)
+         friend std::ostream& operator<<(std::ostream& os, const answer_t& rhs)
          {
             os << "{ Name=" << rhs.Name() << ", Type=" << rhs.Type() << ", Class=" << rhs.Class() << ", TTL=" << rhs.TTL() << ", REC=";
 
@@ -123,20 +115,20 @@ namespace dns
                   break;
 
                default:
-                  os << rhs.RawData().size() << "b";
+                  os << util::oct_dump(rhs.Data<std::string>());
             }
 
             os << " }";
             return os;
          }
 
-         friend bool operator==(const record_t& lhs, const record_t& rhs)
+         friend bool operator==(const answer_t& lhs, const answer_t& rhs)
          {
             if(lhs.Name() == rhs.Name() &&
                   lhs.Type() == rhs.Type() &&
                   lhs.Class() == rhs.Class() &&
-                  lhs.TTL() == rhs.TTL() &&
-                  lhs.RawData() == rhs.RawData())
+                  lhs.TTL() == rhs.TTL()
+              )
             {
                switch(rhs.Type())
                {
@@ -174,11 +166,10 @@ namespace dns
          rr_type_t m_type = rr_type_t::rec_a;
          rr_class_t m_class = rr_class_t::internet;
          int32_t m_TTL = 0;
-         boost::any m_data;
-         std::string m_raw_data;
+         boost::any m_rec;
    };
 
-   inline void save_to(name_offset_tracker_t& tr, const record_t& r)
+   inline void save_to(name_offset_tracker_t& tr, const answer_t& r)
    {
       save_to(tr, label_list_t{r.Name()});
       save_to(tr, static_cast<uint16_t>(r.Type()));
@@ -219,7 +210,7 @@ namespace dns
             break;
 
          default:
-            for(auto && c : r.RawData())
+            for(auto && c : r.Data<std::string>())
                save_to(tr, static_cast<uint8_t>(c));
             break;
       }
@@ -229,12 +220,12 @@ namespace dns
    }
 
    template<>
-   struct LoadImpl<record_t>
+   struct LoadImpl<answer_t>
    {
       template<class InputIterator>
-      static record_t impl(name_offset_tracker_t& tr, InputIterator& ii, InputIterator end)
+      static answer_t impl(name_offset_tracker_t& tr, InputIterator& ii, InputIterator end)
       {
-         record_t r{};
+         answer_t r{};
 
          {
             r.Name(load_from<label_list_t>(tr, ii, end).Name());
@@ -254,7 +245,6 @@ namespace dns
             {
                auto&& rec_b = rec_tr->cbegin();
                auto&& rec_e = rec_tr->cend();
-               auto&& raw_data = std::string{};
 
                switch(r.Type())
                {
@@ -287,12 +277,16 @@ namespace dns
                      break;
 
                   default:
+                  {
+                     auto&& raw_data = std::string{};
+
                      raw_data.resize(record_length);
                      for(uint16_t i = 0; i < record_length; ++i)
                         raw_data[i] = load_from<uint8_t>(tr, rec_b, rec_e);
 
-                     r.RawData(raw_data);
-                     break;
+                     r.Data(raw_data);
+                  }
+                  break;
                }
             }
             else

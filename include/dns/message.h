@@ -2,7 +2,7 @@
 
 #include "dns/header.h"
 #include "dns/question.h"
-#include "dns/record.h"
+#include "dns/answer.h"
 
 #include <ostream>
 #include <string>
@@ -46,11 +46,11 @@ namespace dns
             for(auto& q : m_question)
                q = dns::load_from<dns::question_t>(tr, cur_pos, end);
             for(auto& r : m_answer)
-               r = dns::load_from<dns::record_t>(tr, cur_pos, end);
+               r = dns::load_from<dns::answer_t>(tr, cur_pos, end);
             for(auto& r : m_authority)
-               r = dns::load_from<dns::record_t>(tr, cur_pos, end);
+               r = dns::load_from<dns::answer_t>(tr, cur_pos, end);
             for(auto& r : m_additional)
-               r = dns::load_from<dns::record_t>(tr, cur_pos, end);
+               r = dns::load_from<dns::answer_t>(tr, cur_pos, end);
 
             return cur_pos;
          }
@@ -75,47 +75,47 @@ namespace dns
             m_question.at(x);
          }
 
-         void Answer(const record_t& q)
+         void Answer(const answer_t& q)
          {
             m_answer.push_back(q);
          }
 
-         record_t& Answer(int x)
+         answer_t& Answer(int x)
          {
             m_answer.at(x);
          }
 
-         const record_t& Answer(int x) const
+         const answer_t& Answer(int x) const
          {
             m_answer.at(x);
          }
 
-         void Authority(const record_t& q)
+         void Authority(const answer_t& q)
          {
             m_authority.push_back(q);
          }
 
-         record_t& Authority(int x)
+         answer_t& Authority(int x)
          {
             m_authority.at(x);
          }
 
-         const record_t& Authority(int x) const
+         const answer_t& Authority(int x) const
          {
             m_authority.at(x);
          }
 
-         void Additional(const record_t& q)
+         void Additional(const answer_t& q)
          {
             m_additional.push_back(q);
          }
 
-         record_t& Additional(int x)
+         answer_t& Additional(int x)
          {
             m_additional.at(x);
          }
 
-         const record_t& Additional(int x) const
+         const answer_t& Additional(int x) const
          {
             m_additional.at(x);
          }
@@ -123,8 +123,8 @@ namespace dns
       private:
          header_t m_header;
          std::vector<question_t> m_question;
-         std::vector<record_t> m_answer;
-         std::vector<record_t> m_authority;
-         std::vector<record_t> m_additional;
+         std::vector<answer_t> m_answer;
+         std::vector<answer_t> m_authority;
+         std::vector<answer_t> m_additional;
    };
 }

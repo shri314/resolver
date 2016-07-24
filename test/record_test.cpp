@@ -1,8 +1,8 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE record_test
+#define BOOST_TEST_MODULE answer_test
 #include <boost/test/unit_test.hpp>
 
-#include "dns/record.h"
+#include "dns/answer.h"
 
 #include "test/exception_info.h"
 #include "test/make_my_unique.h"
@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(dns_save_to_and_load_from)
    {
       BOOST_TEST_CONTEXT(Datum.test_context)
       {
-         auto pR = make_my_unique<dns::record_t>(); // TEST OBJECT
+         auto pR = make_my_unique<dns::answer_t>(); // TEST OBJECT
 
          pR->Name(Datum.input_Name);
          pR->Type(Datum.input_Type);
@@ -128,12 +128,12 @@ BOOST_AUTO_TEST_CASE(dns_save_to_and_load_from)
             }
 
             {
-               auto pR1 = make_my_unique<dns::record_t>(); // LOAD_FROM TEST OBJECT
+               auto pR1 = make_my_unique<dns::answer_t>(); // LOAD_FROM TEST OBJECT
                auto&& b = raw_data.begin();
                auto&& e = raw_data.end();
                auto&& tr = dns::name_offset_tracker_t{};
 
-               BOOST_CHECK_NO_THROW(*pR1 = dns::load_from<dns::record_t>(tr, b, e));   // THE SECOND TEST
+               BOOST_CHECK_NO_THROW(*pR1 = dns::load_from<dns::answer_t>(tr, b, e));   // THE SECOND TEST
 
                BOOST_CHECK_EQUAL(static_cast<std::ostringstream&>(std::ostringstream() << *pR1).str(), Datum.expected_stream);
 
@@ -197,7 +197,7 @@ BOOST_AUTO_TEST_CASE(dns_negative_load_from)
    {
       BOOST_TEST_CONTEXT(Datum.test_context)
       {
-         auto pR = make_my_unique<dns::record_t>(); // TEST OBJECT
+         auto pR = make_my_unique<dns::answer_t>(); // TEST OBJECT
 
          auto&& b = Datum.input_raw_data.begin();
          auto&& e = Datum.input_raw_data.end();
@@ -205,13 +205,13 @@ BOOST_AUTO_TEST_CASE(dns_negative_load_from)
 
          if(Datum.expected_exception)
          {
-            BOOST_CHECK_EXCEPTION( *pR = dns::load_from<dns::record_t>(tr, b, e), std::exception, Datum.expected_exception); // THE TEST
+            BOOST_CHECK_EXCEPTION( *pR = dns::load_from<dns::answer_t>(tr, b, e), std::exception, Datum.expected_exception); // THE TEST
 
             BOOST_CHECK(0 <= std::distance(Datum.input_raw_data.begin(), b) && std::distance(Datum.input_raw_data.begin(), b) <= Datum.expected_distance);
          }
          else
          {
-            BOOST_REQUIRE_NO_THROW(*pR = dns::load_from<dns::record_t>(tr, b, e));   // THE TEST
+            BOOST_REQUIRE_NO_THROW(*pR = dns::load_from<dns::answer_t>(tr, b, e));   // THE TEST
 
             BOOST_CHECK_EQUAL(pR->Name(), Datum.expected_Name);
             BOOST_CHECK_EQUAL(pR->Type(), Datum.expected_Type);

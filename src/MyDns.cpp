@@ -38,7 +38,7 @@ void basic_io(int argc, char** argv)
 
 #include "dns/header.h"
 #include "dns/question.h"
-#include "dns/record.h"
+#include "dns/answer.h"
 
 int basic_dns(int argc, char** argv)
 {
@@ -109,17 +109,15 @@ int basic_dns(int argc, char** argv)
 
             for(int i = 0; i < h.AnCount(); ++i)
             {
-               auto&& r = dns::load_from<dns::record_t>(tr, b, e);
+               auto&& r = dns::load_from<dns::answer_t>(tr, b, e);
                std::cout << "S: AN: " << r << "\n";
-
-               // r.get_as<dns::mx_record_t>
             }
 
             for(int i = 0; i < h.NsCount(); ++i)
-               std::cout << "S: NS: " << dns::load_from<dns::record_t>(tr, b, e) << "\n";
+               std::cout << "S: NS: " << dns::load_from<dns::answer_t>(tr, b, e) << "\n";
 
             for(int i = 0; i < h.ArCount(); ++i)
-               std::cout << "S: AR: " << dns::load_from<dns::record_t>(tr, b, e) << "\n";
+               std::cout << "S: AR: " << dns::load_from<dns::answer_t>(tr, b, e) << "\n";
          }
          catch(const std::exception& e)
          {
