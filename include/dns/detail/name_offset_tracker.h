@@ -44,16 +44,16 @@ namespace dns
                return std::experimental::optional < decltype(i->second) > {};
          }
 
-         auto slice(uint16_t ptr_offset) const
+         auto slice(uint16_t ptr_offset, uint16_t end_offset) const
          {
-            if(ptr_offset < current_offset() && current_offset() > 2)
+            if(ptr_offset < current_offset() && end_offset <= current_offset() && ptr_offset <= end_offset)
             {
                return std::experimental::optional<name_offset_tracker_t>
                {
                   name_offset_tracker_t{
                      *this,
                      ptr_offset,
-                     static_cast<uint16_t>(current_offset() - 2u)
+                     end_offset,
                   }
                };
             }
@@ -83,13 +83,15 @@ namespace dns
 
          uint8_t save(uint8_t c)
          {
-            if(!read_only())
+            if(m_current_offset >= m_store->size())
             {
-               m_store->push_back(c);
+               m_store->resize( m_store->size() + 1 );
                ++m_end_offset;
             }
 
-            ++m_current_offset;
+            m_store->at(m_current_offset) = c;
+
+            m_current_offset++;
 
             return c;
          }
@@ -100,15 +102,9 @@ namespace dns
             m_name_offset_assoc->emplace(std::forward<Str>(str), current_offset());
          }
 
-         bool read_only() const
-         {
-            return m_read_only;
-         }
-
       private:
          name_offset_tracker_t(const name_offset_tracker_t& rhs, uint16_t b_offset, uint16_t e_offset)
-            : m_read_only(true)
-            , m_initial_offset(b_offset)
+            : m_initial_offset(b_offset)
             , m_end_offset(e_offset)
             , m_current_offset(m_initial_offset)
             , m_store(rhs.m_store)
@@ -117,7 +113,6 @@ namespace dns
          }
 
       private:
-         bool m_read_only = false;
          uint16_t m_initial_offset = 0;
          uint16_t m_end_offset = 0;
          uint16_t m_current_offset = 0;

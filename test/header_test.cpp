@@ -493,7 +493,7 @@ BOOST_AUTO_TEST_CASE(dns_load_from)
 
             dns::name_offset_tracker_t tr;
 
-            BOOST_CHECK_NO_THROW( *pH = dns::load_from<dns::header_t>(tr, b, e)); // THE TEST
+            BOOST_REQUIRE_NO_THROW( *pH = dns::load_from<dns::header_t>(tr, b, e)); // THE TEST
 
             BOOST_CHECK_EQUAL(std::distance(Datum.input_raw_data.begin(), b), Datum.expected_distance);
 

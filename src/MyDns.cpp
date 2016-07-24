@@ -40,15 +40,44 @@ void basic_io(int argc, char** argv)
 #include "dns/question.h"
 #include "dns/record.h"
 
-void basic_dns(int argc, char** argv)
+int basic_dns(int argc, char** argv)
 {
+   std::string self_name = *argv;
    --argc;
    ++argv;
 
-   if(argc <= 0)
-      return;
+   if(argc <= 2)
+   {
+      std::cerr << "Usage: " << self_name << " <dns_server_ip> <mx|a|txt|soa|ptr|ns|any> <query_str>\n";
+      return 1;
+   }
 
    std::string dns_host = *argv;
+   ++argv;
+   --argc;
+
+   std::string qtype_str = *argv;
+   ++argv;
+   --argc;
+
+   std::string qname = *argv;
+   ++argv;
+   --argc;
+
+   dns::rr_type_t qtype;
+   if(false);
+   else if(qtype_str == "mx")   qtype = dns::rr_type_t::rec_mx;
+   else if(qtype_str == "ptr")  qtype = dns::rr_type_t::rec_ptr;
+   else if(qtype_str == "ns")   qtype = dns::rr_type_t::rec_ns;
+   else if(qtype_str == "a")    qtype = dns::rr_type_t::rec_a;
+   else if(qtype_str == "txt")  qtype = dns::rr_type_t::rec_txt;
+   else if(qtype_str == "soa")  qtype = dns::rr_type_t::rec_soa;
+   else if(qtype_str == "any")  qtype = dns::rr_type_t::rec_any;
+   else
+   {
+      std::cerr << "unsupported record type: " << qtype_str << "\n";
+      return 1;
+   }
 
    boost::asio::io_service io;
    boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string(dns_host), 53);
@@ -83,7 +112,7 @@ void basic_dns(int argc, char** argv)
                auto&& r = dns::load_from<dns::record_t>(tr, b, e);
                std::cout << "S: AN: " << r << "\n";
 
-               r.get_as<dns::mx_record_t>
+               // r.get_as<dns::mx_record_t>
             }
 
             for(int i = 0; i < h.NsCount(); ++i)
@@ -159,14 +188,14 @@ void basic_dns(int argc, char** argv)
             {
                auto&& q = dns::question_t{};
 
-               q.Name("hotmail.com");
-               q.Type(dns::rr_type_t::rec_mx);
+               q.Name(qname);
+               q.Type(qtype);
                q.Class(dns::rr_class_t::internet);
 
                std::cout << "C: QD: " << q << "\n";
                dns::save_to(tr, q);
             }
-            
+
             auto&& oi = std::back_inserter(write_buffer);
             std::copy(tr.cbegin(), tr.cend(), oi);
          }
@@ -183,10 +212,12 @@ void basic_dns(int argc, char** argv)
    socket.async_connect(endpoint, onConnect);
 
    io.run();
+
+   return 0;
 }
 
 
 int main(int argc, char** argv)
 {
-   basic_dns(argc, argv);
+   return basic_dns(argc, argv);
 }

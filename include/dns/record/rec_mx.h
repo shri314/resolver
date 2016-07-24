@@ -12,14 +12,15 @@ namespace dns
    class rec_mx_t
    {
       public:
-         void Exchange(const std::string& v)
+         explicit rec_mx_t(uint16_t preference, std::string exchange)
+            : m_preference(preference)
+            , m_exchange(std::move(exchange))
          {
-            m_exchange = v;
          }
 
-         std::string Exchange() const
+         explicit rec_mx_t()
+            : rec_mx_t{0, {}}
          {
-            return m_exchange;
          }
 
          void Preference(const uint16_t v)
@@ -32,10 +33,28 @@ namespace dns
             return m_preference;
          }
 
+         void Exchange(std::string v)
+         {
+            m_exchange = std::move(v);
+         }
+
+         const std::string& Exchange() const
+         {
+            return m_exchange;
+         }
+
          friend std::ostream& operator<<(std::ostream& os, const rec_mx_t& rhs)
          {
-            return os << "[{pref = " << rhs.Preference() << ", " << rhs.Exchange() << "]";
+            return os << "[preference=" << rhs.Preference() << ", exchange=" << rhs.Exchange() << "]";
          }
+
+         friend bool operator==(const rec_mx_t& lhs, const rec_mx_t& rhs)
+         {
+            return lhs.Preference() == rhs.Preference() &&
+                   lhs.Exchange() == rhs.Exchange();
+         }
+
+         static const rr_type_t m_type = dns::rr_type_t::rec_mx;
 
       private:
          uint16_t m_preference;

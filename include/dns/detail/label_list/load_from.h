@@ -35,7 +35,7 @@ namespace dns
 
                *ptr_offset |= static_cast<uint16_t>(of);
 
-               if( auto&& temp_tr = tr.slice(*ptr_offset) )
+               if( auto&& temp_tr = tr.slice(*ptr_offset, tr.current_offset() - 2u) )
                {
                   try
                   {

@@ -8,6 +8,15 @@
 #include "dns/detail/label_list/load_from.h"
 #include "dns/detail/label_list/save_to.h"
 
+#include "dns/record/rec_a.h"
+#include "dns/record/rec_mx.h"
+#include "dns/record/rec_ptr.h"
+#include "dns/record/rec_ns.h"
+#include "dns/record/rec_txt.h"
+#include "dns/record/rec_cname.h"
+#include "dns/record/rec_soa.h"
+
+#include <boost/any.hpp>
 #include <ostream>
 #include <string>
 #include <limits>
@@ -57,33 +66,107 @@ namespace dns
             return m_TTL;
          }
 
-         uint16_t DataLength() const
+         template<class RecordT>
+         RecordT Data() const
          {
-            return static_cast<uint16_t>(m_record_data.size());
-         }
-
-         void Data(std::string record_data)
-         {
-            if(record_data.size() > std::numeric_limits<uint16_t>::max())
-               record_data.erase(std::numeric_limits<uint16_t>::max());
-
-            m_record_data = std::move(record_data);
-         }
-
-         std::string Data() const
-         {
-            return m_record_data;
+            return boost::any_cast<RecordT>(m_data);
          }
 
          template<class RecordT>
-         RecordT RecordAs() const
+         void Data(RecordT&& v)
          {
-            return boost::any_cast<RecordT>(m_record_value);
+            m_data = std::forward<RecordT>(v);
+         }
+
+         const std::string& RawData() const
+         {
+            return m_raw_data;
+         }
+
+         void RawData(std::string v)
+         {
+            m_raw_data = std::move(v);
          }
 
          friend std::ostream& operator<<(std::ostream& os, const record_t& rhs)
          {
-            return os << "{ Name=" << rhs.Name() << ", Type=" << rhs.Type() << ", Class=" << rhs.Class() << ", TTL=" << rhs.TTL() << " }";
+            os << "{ Name=" << rhs.Name() << ", Type=" << rhs.Type() << ", Class=" << rhs.Class() << ", TTL=" << rhs.TTL() << ", REC=";
+
+            switch(rhs.Type())
+            {
+               case rr_type_t::rec_a:
+                  os << rhs.Data<dns::rec_a_t>();
+                  break;
+
+               case rr_type_t::rec_mx:
+                  os << rhs.Data<dns::rec_mx_t>();
+                  break;
+
+               case rr_type_t::rec_ptr:
+                  os << rhs.Data<dns::rec_ptr_t>();
+                  break;
+
+               case rr_type_t::rec_ns:
+                  os << rhs.Data<dns::rec_ns_t>();
+                  break;
+
+               case rr_type_t::rec_txt:
+                  os << rhs.Data<dns::rec_txt_t>();
+                  break;
+
+               case rr_type_t::rec_soa:
+                  os << rhs.Data<dns::rec_soa_t>();
+                  break;
+
+               case rr_type_t::rec_cname:
+                  os << rhs.Data<dns::rec_cname_t>();
+                  break;
+
+               default:
+                  os << rhs.RawData().size() << "b";
+            }
+
+            os << " }";
+            return os;
+         }
+
+         friend bool operator==(const record_t& lhs, const record_t& rhs)
+         {
+            if(lhs.Name() == rhs.Name() &&
+                  lhs.Type() == rhs.Type() &&
+                  lhs.Class() == rhs.Class() &&
+                  lhs.TTL() == rhs.TTL() &&
+                  lhs.RawData() == rhs.RawData())
+            {
+               switch(rhs.Type())
+               {
+                  case rr_type_t::rec_a:
+                     return lhs.Data<dns::rec_a_t>() == rhs.Data<dns::rec_a_t>();
+
+                  case rr_type_t::rec_mx:
+                     return lhs.Data<dns::rec_mx_t>() == rhs.Data<dns::rec_mx_t>();
+
+                  case rr_type_t::rec_ptr:
+                     return lhs.Data<dns::rec_ptr_t>() == rhs.Data<dns::rec_ptr_t>();
+
+                  case rr_type_t::rec_ns:
+                     return lhs.Data<dns::rec_ns_t>() == rhs.Data<dns::rec_ns_t>();
+
+                  case rr_type_t::rec_txt:
+                     return lhs.Data<dns::rec_txt_t>() == rhs.Data<dns::rec_txt_t>();
+
+                  case rr_type_t::rec_soa:
+                     return lhs.Data<dns::rec_soa_t>() == rhs.Data<dns::rec_soa_t>();
+
+                  case rr_type_t::rec_cname:
+                     return lhs.Data<dns::rec_cname_t>() == rhs.Data<dns::rec_cname_t>();
+
+                  default:
+                     return false;
+               }
+            }
+
+            return false;
          }
 
       private:
@@ -91,8 +174,8 @@ namespace dns
          rr_type_t m_type = rr_type_t::rec_a;
          rr_class_t m_class = rr_class_t::internet;
          int32_t m_TTL = 0;
-         std::string m_record_data;
-         boost::any m_record_value;
+         boost::any m_data;
+         std::string m_raw_data;
    };
 
    inline void save_to(name_offset_tracker_t& tr, const record_t& r)
@@ -101,10 +184,48 @@ namespace dns
       save_to(tr, static_cast<uint16_t>(r.Type()));
       save_to(tr, static_cast<uint16_t>(r.Class()));
       save_to(tr, r.TTL());
-      save_to(tr, static_cast<uint16_t>(r.DataLength()));
 
-      for(auto& c : r.Data())
-         save_to(tr, static_cast<uint8_t>(c));
+      uint16_t offset = tr.current_offset();
+      save_to(tr, static_cast<uint16_t>(0));
+
+      switch(r.Type())
+      {
+         case rr_type_t::rec_a:
+            save_to(tr, r.Data<rec_a_t>());
+            break;
+
+         case rr_type_t::rec_mx:
+            save_to(tr, r.Data<rec_mx_t>());
+            break;
+
+         case rr_type_t::rec_ptr:
+            save_to(tr, r.Data<rec_ptr_t>());
+            break;
+
+         case rr_type_t::rec_ns:
+            save_to(tr, r.Data<rec_ns_t>());
+            break;
+
+         case rr_type_t::rec_txt:
+            save_to(tr, r.Data<rec_txt_t>());
+            break;
+
+         case rr_type_t::rec_soa:
+            save_to(tr, r.Data<rec_soa_t>());
+            break;
+
+         case rr_type_t::rec_cname:
+            save_to(tr, r.Data<rec_cname_t>());
+            break;
+
+         default:
+            for(auto && c : r.RawData())
+               save_to(tr, static_cast<uint8_t>(c));
+            break;
+      }
+
+      auto&& ptr = tr.slice(offset, offset + sizeof(offset));
+      save_to(*ptr, static_cast<uint16_t>(tr.current_offset() - sizeof(offset) - offset));
    }
 
    template<>
@@ -123,13 +244,59 @@ namespace dns
          }
 
          {
-            std::string record_data;
-            record_data.resize( load_from<uint16_t>(tr, ii, end) );
+            uint16_t record_length = load_from<uint16_t>(tr, ii, end);
+            uint16_t record_offset = tr.current_offset();
 
-            for(auto& c : record_data)
-               c = load_from<uint8_t>(tr, ii, end);
+            for(uint16_t i = 0; i < record_length; ++i)
+               load_from<uint8_t>(tr, ii, end);
 
-            r.Data(std::move(record_data));
+            if(auto && rec_tr = tr.slice(record_offset, record_offset + record_length))
+            {
+               auto&& rec_b = rec_tr->cbegin();
+               auto&& rec_e = rec_tr->cend();
+               auto&& raw_data = std::string{};
+
+               switch(r.Type())
+               {
+                  case rr_type_t::rec_a:
+                     r.Data(load_from<rec_a_t>(*rec_tr, rec_b, rec_e));
+                     break;
+
+                  case rr_type_t::rec_mx:
+                     r.Data(load_from<rec_mx_t>(*rec_tr, rec_b, rec_e));
+                     break;
+
+                  case rr_type_t::rec_ptr:
+                     r.Data(load_from<rec_ptr_t>(*rec_tr, rec_b, rec_e));
+                     break;
+
+                  case rr_type_t::rec_ns:
+                     r.Data(load_from<rec_ns_t>(*rec_tr, rec_b, rec_e));
+                     break;
+
+                  case rr_type_t::rec_txt:
+                     r.Data(load_from<rec_txt_t>(*rec_tr, rec_b, rec_e));
+                     break;
+
+                  case rr_type_t::rec_soa:
+                     r.Data(load_from<rec_soa_t>(*rec_tr, rec_b, rec_e));
+                     break;
+
+                  case rr_type_t::rec_cname:
+                     r.Data(load_from<rec_cname_t>(*rec_tr, rec_b, rec_e));
+                     break;
+
+                  default:
+                     raw_data.resize(record_length);
+                     for(uint16_t i = 0; i < record_length; ++i)
+                        raw_data[i] = load_from<uint8_t>(tr, rec_b, rec_e);
+
+                     r.RawData(raw_data);
+                     break;
+               }
+            }
+            else
+               throw dns::exception::bad_data_stream("bad record", 5);
          }
 
          return r;

@@ -47,7 +47,7 @@ do
       continue
    fi
 
-   ./build/mydig $(awk '/^nameserver/ { print $2 ; exit; }' /etc/resolv.conf)
+   ./build/mydig $(awk '/^nameserver/ { print $2 ; exit; }' /etc/resolv.conf) any outlook.com
    rm -f core.*
    sleep 3;
 done
