@@ -13,3 +13,11 @@ target_link_libraries(question_test "boost_unit_test_framework")
 add_test(NAME record_test COMMAND record_test)
 add_executable(record_test record_test.cpp)
 target_link_libraries(record_test "boost_unit_test_framework")
+
+add_test(NAME TypeMapSwitch_test COMMAND TypeMapSwitch_test)
+add_executable(TypeMapSwitch_test TypeMapSwitch_test.cpp)
+target_link_libraries(TypeMapSwitch_test "boost_unit_test_framework")
+
+add_test(NAME TypeList_test COMMAND TypeList_test)
+add_executable(TypeList_test TypeList_test.cpp)
+target_link_libraries(TypeList_test "boost_unit_test_framework")
