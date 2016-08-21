@@ -67,5 +67,8 @@ namespace util
    template<typename... TypeMapT>
    using TypeMapSwitch_t = detail::TypeMapListSwitch< TypeList<TypeMapT...> >;
 
+   template<typename TypeMapListT>
+   using TypeMapListSwitch_t = detail::TypeMapListSwitch< TypeMapListT >;
+
    ////////////////////////////////////////////////////////
 }

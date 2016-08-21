@@ -17,6 +17,7 @@
 #include "dns/record/rec_soa.h"
 
 #include "util/oct_dump.h"
+#include "util/TypeMapSwitch.h"
 
 #include <boost/any.hpp>
 #include <ostream>
@@ -25,6 +26,47 @@
 
 namespace dns
 {
+   namespace detail
+   {
+      template<typename RecordT>
+      struct RecordTypeActionImpl
+      {
+         template<class F, class G>
+         void operator()(F&& fu, G&& gu)
+         {
+            fu(static_cast<RecordT*>(nullptr));
+         }
+      };
+
+      template<>
+      struct RecordTypeActionImpl<void>
+      {
+         template<class F, class G>
+         void operator()(F&& fu, G&& gu)
+         {
+            gu(static_cast<void*>(nullptr));
+         }
+      };
+
+      template<class TypeT, class F, class G>
+      void TYPE_MAP_SWITCH_DISPATCH(TypeT&& ty, F&& fu, G&& gu)
+      {
+         using namespace util;
+
+         using TYPE_MAP_SWITCH = TypeMapSwitch_t <
+                                 /**/ TypeMap<rr_type_t, rr_type_t::rec_a,     rec_a_t>,
+                                 /**/ TypeMap<rr_type_t, rr_type_t::rec_mx,    rec_mx_t>,
+                                 /**/ TypeMap<rr_type_t, rr_type_t::rec_ptr,   rec_ptr_t>,
+                                 /**/ TypeMap<rr_type_t, rr_type_t::rec_ns,    rec_ns_t>,
+                                 /**/ TypeMap<rr_type_t, rr_type_t::rec_txt,   rec_txt_t>,
+                                 /**/ TypeMap<rr_type_t, rr_type_t::rec_soa,   rec_soa_t>,
+                                 /**/ TypeMap<rr_type_t, rr_type_t::rec_cname, rec_cname_t>
+                                 >;
+
+         TYPE_MAP_SWITCH::dispatch<RecordTypeActionImpl>(std::forward<TypeT>(ty), std::forward<F>(fu), std::forward<G>(gu));
+      }
+   }
+
    class answer_t
    {
       public:
@@ -84,39 +126,19 @@ namespace dns
          {
             os << "{ Name=" << rhs.Name() << ", Type=" << rhs.Type() << ", Class=" << rhs.Class() << ", TTL=" << rhs.TTL() << ", REC=";
 
-            switch(rhs.Type())
+            detail::TYPE_MAP_SWITCH_DISPATCH(
+               rhs.Type(),
+
+               [&os, &rhs](auto rt)
             {
-               case rr_type_t::rec_a:
-                  os << rhs.Data<dns::rec_a_t>();
-                  break;
+               using RT = std::remove_reference_t<decltype(*rt)>;
+               os << rhs.Data<RT>();
+            },
 
-               case rr_type_t::rec_mx:
-                  os << rhs.Data<dns::rec_mx_t>();
-                  break;
-
-               case rr_type_t::rec_ptr:
-                  os << rhs.Data<dns::rec_ptr_t>();
-                  break;
-
-               case rr_type_t::rec_ns:
-                  os << rhs.Data<dns::rec_ns_t>();
-                  break;
-
-               case rr_type_t::rec_txt:
-                  os << rhs.Data<dns::rec_txt_t>();
-                  break;
-
-               case rr_type_t::rec_soa:
-                  os << rhs.Data<dns::rec_soa_t>();
-                  break;
-
-               case rr_type_t::rec_cname:
-                  os << rhs.Data<dns::rec_cname_t>();
-                  break;
-
-               default:
-                  os << util::oct_dump(rhs.Data<std::string>());
-            }
+            [&os, &rhs](auto)
+            {
+               os << util::oct_dump(rhs.Data<std::string>());
+            });
 
             os << " }";
             return os;
@@ -130,32 +152,23 @@ namespace dns
                   lhs.TTL() == rhs.TTL()
               )
             {
-               switch(rhs.Type())
+               bool result = false;
+
+               detail::TYPE_MAP_SWITCH_DISPATCH(
+                  rhs.Type(),
+
+                  [&lhs, &rhs, &result](auto rt)
                {
-                  case rr_type_t::rec_a:
-                     return lhs.Data<dns::rec_a_t>() == rhs.Data<dns::rec_a_t>();
+                  using RT = std::remove_reference_t<decltype(*rt)>;
+                  result = lhs.Data<RT>() == rhs.Data<RT>();
+               },
 
-                  case rr_type_t::rec_mx:
-                     return lhs.Data<dns::rec_mx_t>() == rhs.Data<dns::rec_mx_t>();
+               [&lhs, &rhs, &result](auto)
+               {
+                  result = false;
+               });
 
-                  case rr_type_t::rec_ptr:
-                     return lhs.Data<dns::rec_ptr_t>() == rhs.Data<dns::rec_ptr_t>();
-
-                  case rr_type_t::rec_ns:
-                     return lhs.Data<dns::rec_ns_t>() == rhs.Data<dns::rec_ns_t>();
-
-                  case rr_type_t::rec_txt:
-                     return lhs.Data<dns::rec_txt_t>() == rhs.Data<dns::rec_txt_t>();
-
-                  case rr_type_t::rec_soa:
-                     return lhs.Data<dns::rec_soa_t>() == rhs.Data<dns::rec_soa_t>();
-
-                  case rr_type_t::rec_cname:
-                     return lhs.Data<dns::rec_cname_t>() == rhs.Data<dns::rec_cname_t>();
-
-                  default:
-                     return false;
-               }
+               return result;
             }
 
             return false;
@@ -179,41 +192,20 @@ namespace dns
       uint16_t offset = tr.current_offset();
       save_to(tr, static_cast<uint16_t>(0));
 
-      switch(r.Type())
+      detail::TYPE_MAP_SWITCH_DISPATCH(
+         r.Type(),
+
+         [&tr, &r](auto rt)
       {
-         case rr_type_t::rec_a:
-            save_to(tr, r.Data<rec_a_t>());
-            break;
+         using RT = std::remove_reference_t<decltype(*rt)>;
+         save_to(tr, r.Data<RT>());
+      },
 
-         case rr_type_t::rec_mx:
-            save_to(tr, r.Data<rec_mx_t>());
-            break;
-
-         case rr_type_t::rec_ptr:
-            save_to(tr, r.Data<rec_ptr_t>());
-            break;
-
-         case rr_type_t::rec_ns:
-            save_to(tr, r.Data<rec_ns_t>());
-            break;
-
-         case rr_type_t::rec_txt:
-            save_to(tr, r.Data<rec_txt_t>());
-            break;
-
-         case rr_type_t::rec_soa:
-            save_to(tr, r.Data<rec_soa_t>());
-            break;
-
-         case rr_type_t::rec_cname:
-            save_to(tr, r.Data<rec_cname_t>());
-            break;
-
-         default:
-            for(auto && c : r.Data<std::string>())
-               save_to(tr, static_cast<uint8_t>(c));
-            break;
-      }
+      [&tr, &r](auto)
+      {
+         for(auto && c : r.Data<std::string>())
+            save_to(tr, static_cast<uint8_t>(c));
+      });
 
       auto&& ptr = tr.slice(offset, offset + sizeof(offset));
       save_to(*ptr, static_cast<uint16_t>(tr.current_offset() - sizeof(offset) - offset));
@@ -246,48 +238,25 @@ namespace dns
                auto&& rec_b = rec_tr->cbegin();
                auto&& rec_e = rec_tr->cend();
 
-               switch(r.Type())
+               detail::TYPE_MAP_SWITCH_DISPATCH(
+                  r.Type(),
+
+                  [&r, &rec_tr, &rec_b, &rec_e](auto rt)
                {
-                  case rr_type_t::rec_a:
-                     r.Data(load_from<rec_a_t>(*rec_tr, rec_b, rec_e));
-                     break;
+                  using RT = std::remove_reference_t<decltype(*rt)>;
+                  r.Data(load_from<RT>(*rec_tr, rec_b, rec_e));
+               },
 
-                  case rr_type_t::rec_mx:
-                     r.Data(load_from<rec_mx_t>(*rec_tr, rec_b, rec_e));
-                     break;
+               [&r, &rec_tr, &rec_b, &rec_e, record_length](auto)
+               {
+                  auto&& raw_data = std::string{};
 
-                  case rr_type_t::rec_ptr:
-                     r.Data(load_from<rec_ptr_t>(*rec_tr, rec_b, rec_e));
-                     break;
+                  raw_data.resize(record_length);
+                  for(uint16_t i = 0; i < record_length; ++i)
+                     raw_data[i] = load_from<uint8_t>(*rec_tr, rec_b, rec_e);
 
-                  case rr_type_t::rec_ns:
-                     r.Data(load_from<rec_ns_t>(*rec_tr, rec_b, rec_e));
-                     break;
-
-                  case rr_type_t::rec_txt:
-                     r.Data(load_from<rec_txt_t>(*rec_tr, rec_b, rec_e));
-                     break;
-
-                  case rr_type_t::rec_soa:
-                     r.Data(load_from<rec_soa_t>(*rec_tr, rec_b, rec_e));
-                     break;
-
-                  case rr_type_t::rec_cname:
-                     r.Data(load_from<rec_cname_t>(*rec_tr, rec_b, rec_e));
-                     break;
-
-                  default:
-                  {
-                     auto&& raw_data = std::string{};
-
-                     raw_data.resize(record_length);
-                     for(uint16_t i = 0; i < record_length; ++i)
-                        raw_data[i] = load_from<uint8_t>(tr, rec_b, rec_e);
-
-                     r.Data(raw_data);
-                  }
-                  break;
-               }
+                  r.Data(raw_data);
+               });
             }
             else
                throw dns::exception::bad_data_stream("bad record", 5);
