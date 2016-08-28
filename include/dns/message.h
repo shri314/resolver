@@ -166,4 +166,21 @@ namespace dns
 
       return m;
    }
+
+   /*
+    * TODO: Request Builder (client side)
+    *
+    *    dns::request().WithID().WithRecurrsion().
+    *                  .AddQuestionNamed(n).WithQType(1).WithQClass(2)
+    *
+    * TODO: Response Builder (server side)
+    *
+    *    dns::response().WithID()...
+    *                   .AddQuestionNamed(n).WithQType(1).WithQClass(2)
+    *                   .AddAnswer().WithType(t).WithPreference().WithMXData().WithPreference().WithName("mx.n.com")
+    *                   .AddAuthority().WithNS(ns)...
+    *                   .AddAuthority().WithNS(ns)...
+    *                   .AddAdditional().Withxx(yy)...
+    *
+    */
 }
