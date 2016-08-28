@@ -14,7 +14,7 @@ set(mydig_LIBS
       boost_thread
       pthread
    )
-set(mydig_SOURCES "src/MyDns.cpp")
+set(mydig_SOURCES "src/MyDig.cpp")
 
 add_executable(mydig ${mydig_SOURCES})
 target_link_libraries(mydig ${mydig_LIBS})
