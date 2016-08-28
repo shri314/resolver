@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE(Access_t_test)
       CheckExpectedType< Access_t<TL, 0>, int >();
       CheckExpectedType< Access_t<TL, 1>, int& >();
       CheckExpectedType< Access_t<TL, 2>, int* >();
-      CheckExpectedType< Access_t<TL, 3>, int&& > ();
+      CheckExpectedType < Access_t<TL, 3>, int&& > ();
       CheckExpectedType< Access_t<TL, 4>, const int* >();
       CheckExpectedType< Access_t<TL, 5>, int* const >();
       CheckExpectedType< Access_t<TL, 6>, const int* const >();
@@ -348,5 +348,75 @@ BOOST_AUTO_TEST_CASE(Sort_t_test)
       using TL = TypeList< I<1>, I<7>, I<5>, I<3> >;
 
       CheckExpectedType< Sort_t<TL, LtTypeCmp>, TypeList< I<1>, I<3>, I<5>, I<7> > >();
+   }
+}
+
+
+namespace
+{
+   template<int x>
+   struct Idash;
+
+   template<class... Ts>
+   struct AnotherTypeList;
+
+   template<class T>
+   struct Iinc;
+
+   template<int x>
+   struct Iinc< I<x> >
+   {
+      using type = I<x + 1>;
+   };
+
+   template<class T>
+   struct I2Idash;
+
+   template<int x>
+   struct I2Idash< I<x> >
+   {
+      using type = Idash<x>;
+   };
+}
+
+
+BOOST_AUTO_TEST_CASE(Transform_t_test)
+{
+   using namespace util;
+
+   {
+      using TL = TypeList< I<1>, I<3> >;
+
+      CheckExpectedType< Transform_t<TL, TypeList>, TypeList< I<1>, I<3> > >();
+   }
+
+   {
+      using TL = TypeList< I<1>, I<3> >;
+
+      CheckExpectedType< Transform_t<TL, AnotherTypeList>, AnotherTypeList< I<1>, I<3> > >();
+   }
+
+   {
+      using TL = TypeList< I<1>, I<3> >;
+
+      CheckExpectedType< Transform_t<TL, TypeList, Iinc>, TypeList< I<2>, I<4> > >();
+   }
+
+   {
+      using TL = TypeList< I<1>, I<3> >;
+
+      CheckExpectedType< Transform_t<TL, AnotherTypeList, Iinc>, AnotherTypeList< I<2>, I<4> > >();
+   }
+
+   {
+      using TL = TypeList< I<1>, I<3> >;
+
+      CheckExpectedType< Transform_t<TL, TypeList, I2Idash>, TypeList< Idash<1>, Idash<3> > >();
+   }
+
+   {
+      using TL = TypeList< I<1>, I<3> >;
+
+      CheckExpectedType< Transform_t<TL, AnotherTypeList, I2Idash>, AnotherTypeList< Idash<1>, Idash<3> > >();
    }
 }

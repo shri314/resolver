@@ -6,7 +6,7 @@ namespace util
 {
    ////////////////////////////////////////////////////////
 
-   template <typename... TypeT>
+   template <typename... Ts>
    struct TypeList;
 
    ////////////////////////////////////////////////////////
@@ -261,6 +261,29 @@ namespace util
 
    template <typename TypeListT, template<typename, typename> typename LessThanTypeComparatorT>
    using Sort_t = typename detail::Sort<TypeListT, LessThanTypeComparatorT>::type;
+
+   ////////////////////////////////////////////////////////
+
+   namespace detail
+   {
+      template<typename TypeListT, template<typename...> typename NewTypeListT, template<typename> typename TypeTransformerT>
+      struct Transform;
+
+      template<typename... Ts, template<typename...> typename NewTypeListT, template<typename> typename TypeTransformerT>
+      struct Transform< TypeList<Ts...>, NewTypeListT, TypeTransformerT >
+      {
+         using type = NewTypeListT< typename TypeTransformerT<Ts>::type... >;
+      };
+
+      template<typename T>
+      struct PassThroughTypeTransformerT
+      {
+         using type = T;
+      };
+   }
+
+   template<typename TypeListT, template<typename...> typename NewTypeListT, template<typename> typename TypeTransformerT = detail::PassThroughTypeTransformerT>
+   using Transform_t = typename detail::Transform<TypeListT, NewTypeListT, TypeTransformerT>::type;
 
    ////////////////////////////////////////////////////////
 }
