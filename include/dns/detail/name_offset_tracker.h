@@ -3,6 +3,9 @@
 #include <experimental/optional>
 #include <utility>
 #include <string>
+#include <vector>
+#include <memory>
+#include <algorithm>
 #include <map>
 
 namespace dns
