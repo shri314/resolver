@@ -50,7 +50,7 @@ namespace dns
       auto&& begin = text.cbegin();
       auto&& end = text.cend();
 
-      while( auto&& sz = (end - begin > 255u) ? 255u : (end - begin) )
+      while( auto&& sz = static_cast<uint8_t>((end - begin > 255) ? 255 : (end - begin)) )
       {
          save_to(tr, static_cast<uint8_t>(sz));
 

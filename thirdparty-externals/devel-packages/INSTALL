@@ -10,11 +10,11 @@ cd $SCRIPT_DIR
 (
    set -e
 
-   PACKAGE=boost_1_60_0
+   PACKAGE=boost_1_61_0
 
-   if [ ! -f .${PACKAGE}.done ]
+   if [ ! -f $DEV_PREFIX/.${PACKAGE}.done ]
    then
-      wget http://downloads.sourceforge.net/project/boost/boost/1.60.0/boost_1_60_0.tar.bz2
+      wget http://downloads.sourceforge.net/project/boost/boost/1.61.0/boost_1_61_0.tar.bz2
       rm -rf ${PACKAGE}
       tar xjf ${PACKAGE}.tar.bz2
 
@@ -27,7 +27,7 @@ cd $SCRIPT_DIR
 
       ) || exit 1
 
-      touch .${PACKAGE}.done
+      touch $DEV_PREFIX/.${PACKAGE}.done
    fi
 
 ) || exit 1
@@ -37,7 +37,7 @@ cd $SCRIPT_DIR
 
    PACKAGE=cmake-3.6.0
 
-   if [ ! -f .${PACKAGE}.done ]
+   if [ ! -f $DEV_PREFIX/.${PACKAGE}.done ]
    then
       wget --no-check-certificate https://cmake.org/files/v3.6/cmake-3.6.0.tar.gz
       rm -rf ${PACKAGE}
@@ -52,7 +52,7 @@ cd $SCRIPT_DIR
 
       ) || exit 1
 
-      touch .${PACKAGE}.done
+      touch $DEV_PREFIX/.${PACKAGE}.done
    fi
 
 ) || exit 1

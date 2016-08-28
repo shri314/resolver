@@ -44,15 +44,16 @@ sudo ldconfig -v
 sudo ldconfig -v
 
 (
-   wget http://ftp.gnu.org/gnu/gcc/gcc-5.2.0/gcc-5.2.0.tar.bz2
-   tar xjf gcc-5.2.0.tar.bz2
+   wget http://ftp.gnu.org/gnu/gcc/gcc-6.2.0/gcc-6.2.0.tar.bz2
+   tar xjf gcc-6.2.0.tar.bz2
 
    rm -rf gcc-stage
    mkdir gcc-stage
    cd ./gcc-stage/
-   ../gcc-5.2.0/configure --prefix=$DEV_PREFIX/gcc --with-gmp=$DEV_PREFIX/gcc-deps/ --with-mpfr=$DEV_PREFIX/gcc-deps/ --with-mpc=$DEV_PREFIX/gcc-deps/ \
+   ../gcc-6.2.0/configure --prefix=$DEV_PREFIX/gcc --with-gmp=$DEV_PREFIX/gcc-deps/ --with-mpfr=$DEV_PREFIX/gcc-deps/ --with-mpc=$DEV_PREFIX/gcc-deps/ \
        --enable-languages=c,c++ \
-       --disable-bootstrap
+       --disable-bootstrap \
+       --disable-multilib
    make -j10
    make install
 )
