@@ -47,7 +47,13 @@ do
       continue
    fi
 
-   ./build/mydig $(awk '/^nameserver/ { print $2 ; exit; }' /etc/resolv.conf) any outlook.com
+   echo --------------------------------------------
+   echo TCP
+   ./build/mydig $(awk '/^nameserver/ { print $2 ; exit; }' /etc/resolv.conf) tcp any outlook.com
+   echo --------------------------------------------
+   echo UDP
+   ./build/mydig $(awk '/^nameserver/ { print $2 ; exit; }' /etc/resolv.conf) udp mx yahoo.com
+   echo --------------------------------------------
    rm -f core.*
    sleep 3;
 done

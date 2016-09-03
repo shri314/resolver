@@ -50,12 +50,14 @@ sudo ldconfig -v
    rm -rf gcc-stage
    mkdir gcc-stage
    cd ./gcc-stage/
-   ../gcc-6.2.0/configure --prefix=$DEV_PREFIX/gcc --with-gmp=$DEV_PREFIX/gcc-deps/ --with-mpfr=$DEV_PREFIX/gcc-deps/ --with-mpc=$DEV_PREFIX/gcc-deps/ \
+   ../gcc-6.2.0/configure --prefix=$DEV_PREFIX/gcc6 --with-gmp=$DEV_PREFIX/gcc-deps/ --with-mpfr=$DEV_PREFIX/gcc-deps/ --with-mpc=$DEV_PREFIX/gcc-deps/ \
        --enable-languages=c,c++ \
        --disable-bootstrap \
        --disable-multilib
    make -j10
    make install
+
+   ( cd "$DEV_PREFIX" && [ ! -l gcc ] && ln -s gcc6 gcc )
 )
 
 sudo ldconfig -v

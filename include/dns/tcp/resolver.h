@@ -5,7 +5,7 @@
 #include <boost/asio.hpp>
 #include <list>
 
-namespace dns
+namespace dns::tcp
 {
    class resolver
    {

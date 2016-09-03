@@ -1,4 +1,5 @@
-#include "dns/resolver.h"
+#include "dns/tcp/resolver.h"
+#include "dns/udp/resolver.h"
 
 #include <iostream>
 #include <string>
@@ -13,7 +14,7 @@ int basic_dns(int argc, char** argv) try
 
       if(--argc < 0)
       {
-         std::cerr << "Usage: " << self_name << " <dns_server_ip> <mx|a|txt|soa|ptr|ns|any> <query_str>\n";
+         std::cerr << "Usage: " << self_name << " <dns_server_ip> <tcp|udp> <mx|a|txt|soa|ptr|ns|any> <query_str>\n";
          throw 1;
       }
 
@@ -21,6 +22,7 @@ int basic_dns(int argc, char** argv) try
    };
 
    auto&& dns_host = next_argv();
+   auto&& tcp_or_udp = next_argv();
    auto&& qtype_str = next_argv();
    auto&& qname = next_argv();
 
@@ -43,25 +45,42 @@ int basic_dns(int argc, char** argv) try
 
    {
       auto&& io = boost::asio::io_service{};
-      auto&& endpoint = boost::asio::ip::tcp::endpoint{boost::asio::ip::address::from_string(dns_host), 53};
 
-      dns::resolver r{io, endpoint};
-
-      r.async_resolve(
-         dns::make_query(qname, qtype),
-         [](auto ec, auto msg)
+      if( tcp_or_udp == "tcp" )
       {
-         std::cout << "S: " << "\n" << msg << "\n";
-      });
+         auto&& endpoint = boost::asio::ip::tcp::endpoint{boost::asio::ip::address::from_string(dns_host), 53};
 
-      r.async_resolve(
-         dns::make_query("yahoo.com", dns::rr_type_t::rec_mx),
-         [](auto ec, auto msg)
+         dns::tcp::resolver r{io, endpoint};
+
+         r.async_resolve(
+            dns::make_query(qname, qtype),
+            [](auto ec, auto msg)
+         {
+            std::cout << msg;
+         });
+
+         io.run();
+      }
+      else if( tcp_or_udp == "udp" )
       {
-         std::cout << "T: " << "\n" << msg << "\n";
-      });
+         auto&& endpoint = boost::asio::ip::udp::endpoint{boost::asio::ip::address::from_string(dns_host), 53};
 
-      io.run();
+         dns::udp::resolver r{io, endpoint};
+
+         r.async_resolve(
+            dns::make_query(qname, qtype),
+            [](auto ec, auto msg)
+         {
+            std::cout << msg;
+         });
+
+         io.run();
+      }
+      else
+      {
+         std::cerr << "unsupported protocol type: " << tcp_or_udp << "\n";
+         throw 1;
+      }
    }
 
    return 0;
